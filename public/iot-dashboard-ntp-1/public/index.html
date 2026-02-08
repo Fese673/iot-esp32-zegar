@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-mark">NTP</div>
+                <div class="brand-copy">
+                    <h1>IoT Dashboard</h1>
+                    <p class="subtitle">Real-time NTP Data</p>
+                </div>
+            </div>
+            <div class="topbar-actions">
+                <button class="ghost-btn" id="fetch-time">Fetch NTP Time</button>
+            </div>
+        </header>
+        <main>
+            <section class="live-grid">
+                <div class="stat-card">
+                    <div class="stat-top">
+                        <h2>Current NTP Time</h2>
+                    </div>
+                    <div class="value" id="ntp-time">Loading...</div>
+                </div>
+            </section>
+        </main>
+        <footer class="foot">
+            <p>&copy; 2023 IoT Dashboard. All rights reserved.</p>
+        </footer>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
