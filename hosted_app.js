@@ -825,7 +825,7 @@ async function loadDay(dateStr) {
       return;
     }
 
-    const fallbackSnap = await db.ref(HISTORY_FALLBACK_PATH).limitToLast(20000).get();
+    const fallbackSnap = await db.ref(HISTORY_FALLBACK_PATH).limitToLast(5000).get();
     if (token !== currentLoadToken) return;
     const fallbackObj = fallbackSnap.val();
 
@@ -1489,7 +1489,7 @@ chartReady.then(async () => {
 
       // ---- 2. Fallback: raw history (same path as main chart) ----
       console.log("[pms-diag] Fallback: reading", HISTORY_FALLBACK_PATH);
-      const fbSnap = await db.ref(HISTORY_FALLBACK_PATH).limitToLast(20000).get();
+      const fbSnap = await db.ref(HISTORY_FALLBACK_PATH).limitToLast(5000).get();
       if (token !== pmsLoadToken) return;
       const fbObj = fbSnap.val();
       console.log("[pms-diag] fallback exists:", !!fbObj, fbObj ? Object.keys(fbObj).length + " keys" : "");
