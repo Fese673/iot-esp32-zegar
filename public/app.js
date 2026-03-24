@@ -1,14 +1,14 @@
 // Modern IoT dashboard logic
-// Your web app's Firebase configuration
+const runtimeFirebaseConfig = window.__FIREBASE_CONFIG__ || {};
 const firebaseConfig = {
-  apiKey: "AIzaSyDlg2aIgyNBH7zikO-p9-RJhlsa3mNtMZU",
-  authDomain: "iot-esp32-zegar.firebaseapp.com",
-  projectId: "iot-esp32-zegar",
-  storageBucket: "iot-esp32-zegar.firebasestorage.app",
-  messagingSenderId: "961962428654",
-  appId: "1:961962428654:web:5b6e60b921596207d2cbff",
-  databaseURL: "https://iot-esp32-zegar-default-rtdb.europe-west1.firebasedatabase.app"
+  ...runtimeFirebaseConfig,
+  databaseURL: localStorage.getItem("firebaseDatabaseURL")
+    || runtimeFirebaseConfig.databaseURL
 };
+
+if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId || !firebaseConfig.databaseURL) {
+  throw new Error("Missing Firebase configuration. Check firebase-config.js.");
+}
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
@@ -46,9 +46,15 @@ const $btnRefresh = el("btnRefresh");
 const $toggleMotion = el("toggleMotion");
 const $titleTexts = document.querySelectorAll(".title-text");
 
-const DEVICE_ID = "device1";
+const DEVICE_ID = window.__DEVICE_ID__ || localStorage.getItem("firebaseDeviceId") || "device1";
 const HISTORY_BY_DAY_PATH = (dateStr) => `devices/${DEVICE_ID}/historyByDay/${dateStr}`;
 const HISTORY_FALLBACK_PATH = `devices/${DEVICE_ID}/history`;
+
+console.info("[firebase] config", {
+  projectId: firebaseConfig.projectId,
+  databaseURL: firebaseConfig.databaseURL,
+  deviceId: DEVICE_ID
+});
 
 // Time sync config (HTTP endpoint exposed by the device that loaded this page)
 const TIME_ENDPOINT = localStorage.getItem("timeEndpoint") || "/api/time";
@@ -864,7 +870,12 @@ async function loadDay(dateStr) {
     setChartData(tempPts, humPts, pressPts);
   } catch (err) {
     console.error(err);
-    pushAlert("Błąd pobierania danych", "error");
+    const message = String(err?.message || err || "");
+    if (message.toLowerCase().includes("permission denied") || message.toLowerCase().includes("insufficient permissions")) {
+      pushAlert("Firebase: brak dostępu do odczytu. Sprawdź reguły RTDB albo logowanie anonimowe.", "error");
+    } else {
+      pushAlert("Błąd pobierania danych", "error");
+    }
     showOverlay("error");
   }
 }
@@ -1057,7 +1068,7 @@ chartReady.then(async () => {
   const $pmsBtnClear = el("pmsBtnClear");
   const pmsChartFrame = document.getElementById("pmsChartFrame");
   const pmsCanvas = document.getElementById("pmsChart");
-  if (!pmsCanvas) { console.warn("[pms] brak canvas #pmsChart"); return; }
+  if (!pmsCanvas) { return; }
   const pmsCtx = pmsCanvas.getContext("2d");
 
   // Shift PMS controls to the right by 1.5x for better placement (uses left percent)
@@ -1530,7 +1541,13 @@ chartReady.then(async () => {
       }
     } catch (err) {
       console.error("[pms] load error:", err);
-      pmsShowOverlay("error");
+      const message = String(err?.message || err || "");
+      if (message.toLowerCase().includes("permission denied") || message.toLowerCase().includes("insufficient permissions")) {
+        if ($pmsModeInfo) $pmsModeInfo.textContent = "Brak dostępu do RTDB dla przeglądarki";
+        pmsShowOverlay("error");
+      } else {
+        pmsShowOverlay("error");
+      }
     }
   }
 

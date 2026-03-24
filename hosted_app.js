@@ -1,6 +1,6 @@
 // Modern IoT dashboard logic
 // Your web app's Firebase configuration
-const firebaseConfig = {
+const defaultFirebaseConfig = {
   apiKey: "AIzaSyDlg2aIgyNBH7zikO-p9-RJhlsa3mNtMZU",
   authDomain: "iot-esp32-zegar.firebaseapp.com",
   projectId: "iot-esp32-zegar",
@@ -8,6 +8,14 @@ const firebaseConfig = {
   messagingSenderId: "961962428654",
   appId: "1:961962428654:web:5b6e60b921596207d2cbff",
   databaseURL: "https://iot-esp32-zegar-default-rtdb.europe-west1.firebasedatabase.app"
+};
+
+const firebaseConfig = {
+  ...defaultFirebaseConfig,
+  ...(window.__FIREBASE_CONFIG__ || {}),
+  databaseURL: localStorage.getItem("firebaseDatabaseURL")
+    || window.__FIREBASE_CONFIG__?.databaseURL
+    || defaultFirebaseConfig.databaseURL
 };
 
 // Initialize Firebase
@@ -46,9 +54,15 @@ const $btnRefresh = el("btnRefresh");
 const $toggleMotion = el("toggleMotion");
 const $titleTexts = document.querySelectorAll(".title-text");
 
-const DEVICE_ID = "device1";
+const DEVICE_ID = window.__DEVICE_ID__ || localStorage.getItem("firebaseDeviceId") || "device1";
 const HISTORY_BY_DAY_PATH = (dateStr) => `devices/${DEVICE_ID}/historyByDay/${dateStr}`;
 const HISTORY_FALLBACK_PATH = `devices/${DEVICE_ID}/history`;
+
+console.info("[firebase] config", {
+  projectId: firebaseConfig.projectId,
+  databaseURL: firebaseConfig.databaseURL,
+  deviceId: DEVICE_ID
+});
 
 // Time sync config (HTTP endpoint exposed by the device that loaded this page)
 const TIME_ENDPOINT = localStorage.getItem("timeEndpoint") || "/api/time";
@@ -864,7 +878,12 @@ async function loadDay(dateStr) {
     setChartData(tempPts, humPts, pressPts);
   } catch (err) {
     console.error(err);
-    pushAlert("Błąd pobierania danych", "error");
+    const message = String(err?.message || err || "");
+    if (message.toLowerCase().includes("permission denied") || message.toLowerCase().includes("insufficient permissions")) {
+      pushAlert("Firebase: brak dostępu do odczytu. Sprawdź reguły RTDB albo logowanie anonimowe.", "error");
+    } else {
+      pushAlert("Błąd pobierania danych", "error");
+    }
     showOverlay("error");
   }
 }
@@ -1530,7 +1549,13 @@ chartReady.then(async () => {
       }
     } catch (err) {
       console.error("[pms] load error:", err);
-      pmsShowOverlay("error");
+      const message = String(err?.message || err || "");
+      if (message.toLowerCase().includes("permission denied") || message.toLowerCase().includes("insufficient permissions")) {
+        if ($pmsModeInfo) $pmsModeInfo.textContent = "Brak dostępu do RTDB dla przeglądarki";
+        pmsShowOverlay("error");
+      } else {
+        pmsShowOverlay("error");
+      }
     }
   }
 

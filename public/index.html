@@ -151,97 +151,126 @@
       </div>
     </section>
 
-    <section class="panel pms-section" aria-label="pms5003">
-      <div class="panel-title-wrap" aria-hidden="true">
-        <div class="topbar-center" aria-label="Tytuł sekcji">
-          <div class="title-box">
-            <h1 class="title-text" data-title="S E N S O R - P M S 5 0 0 3">SENSOR-PMS5003</h1>
-          </div>
+    <section class="panel pm-preview" aria-label="Symulowane frakcje PM">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Symulacja</p>
+          <h2>PM Frakcje · storytelling o cząsteczkach</h2>
+          <p>
+            Ten moduł działa w izolacji i korzysta wyłącznie z symulacji. Dzięki temu zachowuje
+            interakcję na kolumnach, panel szczegółów i edukacyjny opis, bez ryzyka naruszenia
+            reszty dashboardu.
+          </p>
+        </div>
+        <div class="panel-actions">
+          <span class="chip live"><span class="pulse"></span> symulacja aktywna</span>
+          <span class="chip">hover + click</span>
+          <span class="chip">bez Firebase</span>
         </div>
       </div>
 
-      <div class="pms-inner-panel">
-        <div class="panel-head">
-          <div>
-            <p class="eyebrow">Historia i trend</p>
-            <h2>TRYB-ATMOSFERYCZNY : pyłki</h2>
-          </div>
-          <div class="panel-actions">
-            <button class="primary-btn" id="pmsBtnToday">Dziś</button>
-            <button class="ghost-btn" id="pmsBtnClear">Wyczyść</button>
-          </div>
-        </div>
-
-        <section class="live-grid pms5003-grid" aria-label="PMS5003 live view">
-          <article class="stat-card">
-            <div class="stat-top">
-              <p class="label">PM 1.0</p>
-              <span class="tag">μg/m³</span>
-            </div>
-            <p class="value" id="pm1Value">--</p>
-            <p class="muted" id="pm1Meta">Czekam na dane</p>
-          </article>
-
-          <article class="stat-card">
-            <div class="stat-top">
-              <p class="label">PM 2.5</p>
-              <span class="tag">μg/m³</span>
-            </div>
-            <p class="value" id="pm25Value">--</p>
-            <p class="muted" id="pm25Meta">Czekam na dane</p>
-          </article>
-
-          <article class="stat-card">
-            <div class="stat-top">
-              <p class="label">PM 10.0</p>
-              <span class="tag">μg/m³</span>
-            </div>
-            <p class="value" id="pm10Value">--</p>
-            <p class="muted" id="pm10Meta">Czekam na dane</p>
-          </article>
-        </section>
-
-        <div class="panel-body split">
-          <div class="chart-stack">
-            <div class="chart-head">
-              <div>
-                <p class="muted" id="pmsModeInfo">Wybierz dzień w kalendarzu</p>
-                <p class="chart-hint">Ctrl ⌃ + scroll / pinch aby przybliżyć. Przesuń gdy jesteś nad wykresem.</p>
-              </div>
-              <span class="chip" id="pmsDataDensity">–</span>
-            </div>
-            <div class="chart-frame" id="pmsChartFrame">
-              <canvas id="pmsChart" aria-label="Wykres historii pyłów PM" role="img"></canvas>
-              <div class="chart-overlay" id="pmsChartLoading">Ładowanie danych…</div>
-              <div class="chart-overlay" id="pmsChartNote">Wybierz dzień, aby wczytać dane z bazy.</div>
-              <div class="chart-overlay error" id="pmsChartError">Brak danych dla tego dnia.</div>
-              <div class="chart-controls" aria-hidden="true">
-                <button type="button" class="chart-control" data-pms-pan="-1" aria-label="Przesuń wykres w lewo">‹</button>
-                <button type="button" class="chart-control" data-pms-pan="1" aria-label="Przesuń wykres w prawo">›</button>
-              </div>
-            </div>
-          </div>
-
-          <aside class="calendar" aria-label="Kalendarz wyboru dnia — pyły">
-            <div class="cal-head">
-              <button class="cal-btn" id="pmsCalPrev" title="Poprzedni miesiąc" aria-label="Poprzedni miesiąc">◀</button>
-              <div>
-                <p class="eyebrow">Dzień</p>
-                <h3 class="cal-title" id="pmsCalTitle">—</h3>
-              </div>
-              <button class="cal-btn" id="pmsCalNext" title="Następny miesiąc" aria-label="Następny miesiąc">▶</button>
-            </div>
-            <div class="cal-weekdays">
-              <span>Pn</span><span>Wt</span><span>Śr</span><span>Cz</span><span>Pt</span><span>Sb</span><span>Nd</span>
-            </div>
-            <div class="cal-grid" id="pmsCalGrid"></div>
-            <div class="cal-legend">
-              <span class="legend-dot today"></span> dziś
-              <span class="legend-dot selected"></span> wybrany
-            </div>
-          </aside>
-        </div>
+      <div class="pm-embed-shell">
+        <iframe
+          id="pmEmbed"
+          class="pm-embed"
+          src="Kreatywna%20sekcja/pm_chart1.html"
+          title="PM Frakcje - symulowany panel cząsteczek"
+          scrolling="no"
+          loading="lazy"
+        ></iframe>
       </div>
+      <section class="pms-section" aria-label="pms5003">
+        <div class="panel-title-wrap" aria-hidden="true">
+          <div class="topbar-center" aria-label="Tytuł sekcji">
+            <div class="title-box">
+              <h1 class="title-text" data-title="S E N S O R - P M S 5 0 0 3">SENSOR-PMS5003</h1>
+            </div>
+          </div>
+        </div>
+
+        <div class="pms-inner-panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Historia i trend</p>
+              <h2>TRYB-ATMOSFERYCZNY : pyłki</h2>
+            </div>
+            <div class="panel-actions">
+              <button class="primary-btn" id="pmsBtnToday">Dziś</button>
+              <button class="ghost-btn" id="pmsBtnClear">Wyczyść</button>
+            </div>
+          </div>
+
+          <section class="live-grid pms5003-grid" aria-label="PMS5003 live view">
+            <article class="stat-card">
+              <div class="stat-top">
+                <p class="label">PM 1.0</p>
+                <span class="tag">μg/m³</span>
+              </div>
+              <p class="value" id="pm1Value">--</p>
+              <p class="muted" id="pm1Meta">Czekam na dane</p>
+            </article>
+
+            <article class="stat-card">
+              <div class="stat-top">
+                <p class="label">PM 2.5</p>
+                <span class="tag">μg/m³</span>
+              </div>
+              <p class="value" id="pm25Value">--</p>
+              <p class="muted" id="pm25Meta">Czekam na dane</p>
+            </article>
+
+            <article class="stat-card">
+              <div class="stat-top">
+                <p class="label">PM 10.0</p>
+                <span class="tag">μg/m³</span>
+              </div>
+              <p class="value" id="pm10Value">--</p>
+              <p class="muted" id="pm10Meta">Czekam na dane</p>
+            </article>
+          </section>
+
+          <div class="panel-body split">
+            <div class="chart-stack">
+              <div class="chart-head">
+                <div>
+                  <p class="muted" id="pmsModeInfo">Wybierz dzień w kalendarzu</p>
+                  <p class="chart-hint">Ctrl ⌃ + scroll / pinch aby przybliżyć. Przesuń gdy jesteś nad wykresem.</p>
+                </div>
+                <span class="chip" id="pmsDataDensity">–</span>
+              </div>
+              <div class="chart-frame" id="pmsChartFrame">
+                <canvas id="pmsChart" aria-label="Wykres historii pyłów PM" role="img"></canvas>
+                <div class="chart-overlay" id="pmsChartLoading">Ładowanie danych…</div>
+                <div class="chart-overlay" id="pmsChartNote">Wybierz dzień, aby wczytać dane z bazy.</div>
+                <div class="chart-overlay error" id="pmsChartError">Brak danych dla tego dnia.</div>
+                <div class="chart-controls" aria-hidden="true">
+                  <button type="button" class="chart-control" data-pms-pan="-1" aria-label="Przesuń wykres w lewo">‹</button>
+                  <button type="button" class="chart-control" data-pms-pan="1" aria-label="Przesuń wykres w prawo">›</button>
+                </div>
+              </div>
+            </div>
+
+            <aside class="calendar" aria-label="Kalendarz wyboru dnia — pyły">
+              <div class="cal-head">
+                <button class="cal-btn" id="pmsCalPrev" title="Poprzedni miesiąc" aria-label="Poprzedni miesiąc">◀</button>
+                <div>
+                  <p class="eyebrow">Dzień</p>
+                  <h3 class="cal-title" id="pmsCalTitle">—</h3>
+                </div>
+                <button class="cal-btn" id="pmsCalNext" title="Następny miesiąc" aria-label="Następny miesiąc">▶</button>
+              </div>
+              <div class="cal-weekdays">
+                <span>Pn</span><span>Wt</span><span>Śr</span><span>Cz</span><span>Pt</span><span>Sb</span><span>Nd</span>
+              </div>
+              <div class="cal-grid" id="pmsCalGrid"></div>
+              <div class="cal-legend">
+                <span class="legend-dot today"></span> dziś
+                <span class="legend-dot selected"></span> wybrany
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
     </section>
 
     <section class="system">
@@ -261,6 +290,44 @@
 
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
   <script src="app.js"></script>
+  <script>
+    (function autoSizePmEmbed() {
+      const iframe = document.getElementById('pmEmbed');
+      if (!iframe) return;
+
+      const resize = () => {
+        try {
+          const doc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (!doc || !doc.body || !doc.documentElement) return;
+          const height = Math.max(
+            doc.body.scrollHeight,
+            doc.documentElement.scrollHeight,
+            doc.body.offsetHeight,
+            doc.documentElement.offsetHeight
+          );
+          iframe.style.height = `${height}px`;
+        } catch (error) {
+          // same-origin should allow access; ignore if frame is not ready yet
+        }
+      };
+
+      iframe.addEventListener('load', () => {
+        resize();
+        try {
+          const win = iframe.contentWindow;
+          win?.addEventListener('resize', resize);
+        } catch (error) {
+          // ignore
+        }
+        window.setTimeout(resize, 150);
+        window.setTimeout(resize, 600);
+      });
+
+      window.addEventListener('resize', resize);
+      window.setTimeout(resize, 1000);
+    })();
+  </script>
 </body>
 </html>
