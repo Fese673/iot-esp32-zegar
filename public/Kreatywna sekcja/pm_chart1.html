@@ -924,18 +924,18 @@
   <div class="page">
     <header class="panel hero">
       <div class="hero-copy">
-        <p class="eyebrow">PMS5003 / statyczny podgląd</p>
+        <p class="eyebrow">PMS5003 / dane z Firebase</p>
         <h1>PM Frakcje</h1>
         <p>
-          To jest dopracowany, samodzielny mockup wykresu do późniejszego wpięcia w dashboard.
-          Został ustawiony tak, żeby stylistycznie pasował do reszty strony: te same fonty,
-          podobne karty, ta sama gęstość i spokojniejsza paleta.
+          Ten widok czyta rzeczywiste frakcje pyłu z <strong>devices/device1/latest.particles.*</strong>
+          i zachowuje warstwowy układ wykresu. Liczby na słupkach pochodzą z Firebase, a skala
+          słupków pokazuje relację wewnątrz bieżącej próbki.
         </p>
 
         <div class="hero-badges">
-          <span class="badge"><span class="swatch"></span> symulacja danych</span>
-          <span class="badge"><span class="swatch" style="background: var(--pm25); box-shadow: 0 0 0 4px rgba(252,211,77,0.14);"></span> gotowe do podmiany na fetch()</span>
-          <span class="badge"><span class="swatch" style="background: var(--accent-2); box-shadow: 0 0 0 4px rgba(125,211,252,0.14);"></span> osobny komponent</span>
+          <span class="badge"><span class="swatch"></span> dane live z RTDB</span>
+          <span class="badge"><span class="swatch" style="background: var(--pm25); box-shadow: 0 0 0 4px rgba(252,211,77,0.14);"></span> particles.*</span>
+          <span class="badge"><span class="swatch" style="background: var(--accent-2); box-shadow: 0 0 0 4px rgba(125,211,252,0.14);"></span> układ warstwowy</span>
         </div>
       </div>
 
@@ -961,7 +961,7 @@
 
           <article class="mini-card alert">
             <div class="label">Kierunek</div>
-            <div class="value">Trend</div>
+            <div class="value" id="heroTrendValue">Trend</div>
             <div class="meta">Przejście od normy do alertu bez agresywnej stylistyki</div>
           </article>
         </div>
@@ -975,16 +975,17 @@
             <p class="eyebrow">Wykres</p>
             <h2>Frakcje PM w układzie warstwowym</h2>
             <p>
-              Statyczny zestaw danych został narysowany w taki sposób, żeby później wystarczyło
-              podmienić tablicę danych. Strukturę i proporcje można przenieść 1:1 do gotowego widoku.
+              To jest ten sam układ warstwowy, ale zasilany realnymi wartościami z Firebase.
+              Każda kolumna pokazuje bieżącą liczbę cząstek dla danej frakcji, a podpisy na osi
+              odnoszą się do ostatniego znanego maksimum z historii lub do aktualnej próbki.
             </p>
           </div>
           <div class="chip-row">
-            <span class="chip live"><span class="pulse"></span> symulacja: aktywna</span>
+            <span class="chip live"><span class="pulse"></span> RTDB: aktywne</span>
             <button class="chip chip-action" id="detailsBtn" type="button">Szczegóły</button>
             <span class="chip">układ: stacked bars</span>
-            <span class="chip">kolory: zgodne z dashboardem</span>
-            <span class="chip">tryb: preview</span>
+            <span class="chip">źródło: particles.*</span>
+            <span class="chip">tryb: live</span>
           </div>
         </div>
 
@@ -1012,7 +1013,7 @@
                 <span class="legend-item"><span class="legend-dot warn"></span> uwaga</span>
                 <span class="legend-item"><span class="legend-dot alert"></span> alarm</span>
               </div>
-              <div id="simStatus">Wersja demonstracyjna, bez podpięcia do API.</div>
+              <div id="simStatus">Łączenie z Firebase RTDB…</div>
             </div>
           </div>
         </div>
@@ -1024,18 +1025,19 @@
             <p class="eyebrow">Opis</p>
             <h2>Jak to ma wyglądać po wdrożeniu</h2>
             <p>
-              Zostawiam ten plik jako samodzielny projekt wizualny. Później można go przenieść
-              do sekcji PMS5003 bez przebudowy stylu, bo bazuje na tych samych decyzjach UI.
+              Ten widok jest teraz podłączony bezpośrednio do danych z Firebase. Dzięki temu
+              zachowuje ten sam styl, ale pokazuje realne liczby cząstek zamiast przykładowych
+              wartości testowych.
             </p>
           </div>
         </div>
 
         <section class="info-block">
-          <h3>Założenia wizualne</h3>
+          <h3>Założenia danych</h3>
           <ul class="info-list">
-            <li>ciemne tło i panelowe karty jak w dashboardzie</li>
-            <li>font Space Grotesk + IBM Plex Mono, czyli zgodnie z resztą strony</li>
-            <li>kolory tylko tam, gdzie niosą informację, bez nadmiaru neonów</li>
+            <li>źródło: <strong>devices/device1/latest.particles.*</strong></li>
+            <li>przeskalowanie słupków względem bieżącej próbki, bez zgadywania wartości</li>
+            <li>fallback do historii tylko wtedy, gdy trzeba pokazać ostatnie maksimum</li>
           </ul>
         </section>
 
@@ -1075,8 +1077,9 @@
         <section class="info-block">
           <h3>Wdrożenie później</h3>
           <p>
-            Gdy będziesz gotowy, wystarczy podmienić tablicę danych w skrypcie na dane z fetch()
-            i przenieść ten blok do właściwej sekcji strony. Układ i detale są już ustawione pod integrację.
+            Wartość słupka to aktualny odczyt cząstek dla danej frakcji. Podpis na osi pokazuje
+            rekordową wartość z historii albo bieżący punkt odniesienia, jeśli historia jeszcze nie
+            zdążyła się zebrać.
           </p>
         </section>
 
@@ -1100,10 +1103,16 @@
           </div>
         </section>
 
-        <p class="footnote">
-          To jest osobny plik podglądu. Nie ingeruje jeszcze w główną stronę i może zostać potraktowany
-          jako gotowy komponent do skopiowania do dashboardu.
-        </p>
+        <div class="footnote-block">
+          <p class="footnote">
+            To jest osobny plik podglądu. Nie ingeruje jeszcze w główną stronę i może zostać potraktowany
+            jako gotowy komponent do skopiowania do dashboardu.
+          </p>
+          <p class="footnote">
+            To jest osobny komponent, ale działa na tych samych danych co dashboard. Nie używa
+            symulacji i ma czytelny fallback, gdyby historyczne maksimum nie było jeszcze dostępne.
+          </p>
+        </div>
       </aside>
     </main>
   </div>
@@ -1141,7 +1150,7 @@
     </p>
   </aside>
 
-  <script>
+  <script type="text/plain" id="legacy-sim-script">
     const BASE_DATA = [
       { fraction: '0.3 μm', maxVal: 1200000, reading: 912400, fillPct: 76 },
       { fraction: '0.5 μm', maxVal: 240000, reading: 168200, fillPct: 70 },
@@ -1584,5 +1593,9 @@
       requestAnimationFrame(renderFrame);
     });
   </script>
+  <script src="../firebase-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <script src="pm_chart-live.js"></script>
 </body>
 </html>

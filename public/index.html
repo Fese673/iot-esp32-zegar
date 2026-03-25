@@ -151,21 +151,21 @@
       </div>
     </section>
 
-    <section class="panel pm-preview" aria-label="Symulowane frakcje PM">
+    <section class="panel pm-preview" aria-label="Frakcje PM w układzie warstwowym">
       <div class="panel-head">
         <div>
-          <p class="eyebrow">Symulacja</p>
+          <p class="eyebrow">Firebase RTDB</p>
           <h2>PM Frakcje · storytelling o cząsteczkach</h2>
           <p>
-            Ten moduł działa w izolacji i korzysta wyłącznie z symulacji. Dzięki temu zachowuje
-            interakcję na kolumnach, panel szczegółów i edukacyjny opis, bez ryzyka naruszenia
-            reszty dashboardu.
+            Ten panel pokazuje warstwowy wykres frakcji PM z rzeczywistych danych zapisanych w
+            <strong>devices/device1/latest.particles.*</strong>. To osobny komponent, ale korzysta z
+            tej samej bazy co reszta dashboardu.
           </p>
         </div>
         <div class="panel-actions">
-          <span class="chip live"><span class="pulse"></span> symulacja aktywna</span>
+          <span class="chip live"><span class="pulse"></span> RTDB live</span>
           <span class="chip">hover + click</span>
-          <span class="chip">bez Firebase</span>
+          <span class="chip">particles.*</span>
         </div>
       </div>
 
@@ -174,7 +174,7 @@
           id="pmEmbed"
           class="pm-embed"
           src="Kreatywna%20sekcja/pm_chart1.html"
-          title="PM Frakcje - symulowany panel cząsteczek"
+          title="PM Frakcje - warstwowy panel z danych Firebase"
           scrolling="no"
           loading="lazy"
         ></iframe>
@@ -291,43 +291,10 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
+  <script src="ui-utils.js"></script>
+  <script src="time-utils.js"></script>
   <script src="app.js"></script>
-  <script>
-    (function autoSizePmEmbed() {
-      const iframe = document.getElementById('pmEmbed');
-      if (!iframe) return;
-
-      const resize = () => {
-        try {
-          const doc = iframe.contentDocument || iframe.contentWindow?.document;
-          if (!doc || !doc.body || !doc.documentElement) return;
-          const height = Math.max(
-            doc.body.scrollHeight,
-            doc.documentElement.scrollHeight,
-            doc.body.offsetHeight,
-            doc.documentElement.offsetHeight
-          );
-          iframe.style.height = `${height}px`;
-        } catch (error) {
-          // same-origin should allow access; ignore if frame is not ready yet
-        }
-      };
-
-      iframe.addEventListener('load', () => {
-        resize();
-        try {
-          const win = iframe.contentWindow;
-          win?.addEventListener('resize', resize);
-        } catch (error) {
-          // ignore
-        }
-        window.setTimeout(resize, 150);
-        window.setTimeout(resize, 600);
-      });
-
-      window.addEventListener('resize', resize);
-      window.setTimeout(resize, 1000);
-    })();
-  </script>
+  <script src="pms-module.js"></script>
+  <script src="pm-embed.js"></script>
 </body>
 </html>
