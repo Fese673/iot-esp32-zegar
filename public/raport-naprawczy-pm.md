@@ -39,14 +39,18 @@ W [Kreatywna sekcja/pm_chart1.html](Kreatywna%20sekcja/pm_chart1.html) końcówk
 - Wyłączyłem JS-owy hack, który przesuwał PMS kontrolki po załadowaniu.
 - Poprawiłem selektory CSS dla sekcji PMS, żeby stylowanie trafiało w realny element.
 - Naprawiłem końcówkę [Kreatywna sekcja/pm_chart1.html](Kreatywna%20sekcja/pm_chart1.html), żeby układ nie zależał od awaryjnego domykania przez przeglądarkę.
-- Dodałem responsywne łamanie kafelków PM 5003, żeby nie ściskały się w trzy kolumny na węższych szerokościach.
+- Zmieniłem układ pętlowy (nesting) w głównym `index.html`: wyciągnąłem `.pms-section` na zewnątrz kontenera `.pm-preview`. Zapobiegnie to nienaturalnemu zlewaniu się obramowań i dziwnym promieniom zaokrągleń (border-radius zawijał ramkę powyżej sekcji w tym samym kontenerze).
+- Usunąłem zdublowaną klasę `live-grid pms5003-grid` na same `pms5003-grid` w `index.html`. Sprawiało to konflikt siatek (4 kolumny vs 3 kolumny), co wymuszało nieprzewidywalne skalowanie wykresów na węższych ekranach.
+- Zabezpieczyłem tytuły `S E N S O R` oraz głownego nagłówka (litery flex) za pomocą `flex-wrap: wrap` – brak tej reguły i ułożenie `display: flex` dla liter powodowały wyciek nagłówka przy bardzo małych rozdzielczościach poniżej `300px` (np. nakładanie się na ikony na urządzeniach typu zegarki / małe paski).
+- Dodałem brakujący element `<p id="projectStartTime">` w karcie Uptime. Brak tego paragrafu powodował asymetrię wysokości względem siostrzanej karty zegara NTP, przez co blok `.meta-grid` potrafił krzywić wizualny balans układu.
 
 ## Efekt
 
 - Sterowanie wykresem nie powinno już sprawiać wrażenia „nakładającego się”.
 - Scroll i pinch nie powinny już robić podwójnego skoku.
-- Sekcja PM ma bardziej przewidywalny layout i mniej kruchego kodu startowego.
-- Kafle PM 5003 układają się teraz 3 → 2 → 1 zamiast pozostawać w wąskim, przypadkowym rządku.
+- Sekcja PM ma wysoce przewidywalny i odizolowany układ – dwa niezależne bloki (Iframe Firebase oraz widok PMS5003) zamiast zlanego panelu.
+- Kafle PM 5003 przeliczają się stabilnie, układając się w 3 → 2 → 1 kolumny, nie poddając się już losowym łamaniom z tytułu miksu klas.
+- Etykiety i logotyp w górnych panelach mają teraz zabezpieczenie dla wąskich viewportów.
 
 ## Co dalej warto obserwować
 

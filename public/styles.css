@@ -138,6 +138,7 @@ body {
   text-align: center;
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
   user-select: none;
   pointer-events: none;
   min-height: 1.5em;
@@ -301,6 +302,10 @@ body {
   gap: 8px;
   min-height: 158px;
   align-content: start;
+}
+
+.stat-card.meta-card {
+  min-height: 168px;
 }
 
 .stat-top { display: flex; align-items: center; justify-content: space-between; }
@@ -512,12 +517,6 @@ body {
   background: var(--panel-2);
 }
 
-.pm-preview .pms-section {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 1px solid var(--stroke);
-}
-
 .calendar {
   border: 1px solid var(--stroke);
   border-radius: 14px;
@@ -659,6 +658,7 @@ body {
   gap: 16px;
   padding: 16px 18px;
   margin-bottom: 12px;
+  align-items: stretch;
 }
 
 .footnote-block {
@@ -666,13 +666,6 @@ body {
   gap: 10px;
 }
 
-.pms5003-grid .stat-card {
-  border: 1px solid var(--stroke);
-  background: linear-gradient(180deg, rgba(18,26,43,0.95), rgba(12,18,29,0.92));
-  padding: 16px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
 
 /* Header above PMS grid */
 .panel-title-wrap {
@@ -737,6 +730,7 @@ body {
   .stat-card { min-height: 0; }
   .pms-inner-panel .pms5003-grid { grid-template-columns: 1fr; }
   .calendar { min-width: 0; width: 100%; }
+  .pm-embed-shell { min-height: 0; }
 }
 
 /* PMS5003 chart section accent (green glow) */
@@ -797,6 +791,4 @@ body {
 #pm25Value { color: var(--pm25); }
 #pm10Value { color: var(--pm10); }
 
-@media (max-width: 640px) {
-  .pm-embed-shell { min-height: 0; }
-}
+
