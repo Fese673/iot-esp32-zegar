@@ -137,11 +137,11 @@
           <header class="chart-head">
             <div>
               <p class="muted" id="modeInfo">Wybierz dzień w kalendarzu</p>
-              <p class="chart-hint">Ctrl ⌃ + scroll / pinch aby przybliży�ć. Przesuń gdy jesteś nad wykresem.</p>
+              <p class="chart-hint">Ctrl ⌃ + scroll / pinch aby przybliżyć. Przesuń gdy jesteś nad wykresem.</p>
             </div>
             <span class="chip" id="dataDensity">-</span>
           </header>
-          
+
           <div class="chart-frame">
             <canvas id="mainChart" aria-label="Wykres historii pomiarów" role="img"></canvas>
             <div class="chart-overlay" id="chartLoading">Ładowanie danych…</div>
@@ -164,12 +164,12 @@
             </div>
             <button class="cal-btn" id="calNext" title="Następny miesiąc" aria-label="Następny miesiąc">◆</button>
           </header>
-          
+
           <div class="cal-weekdays">
             <span>Pn</span><span>Wt</span><span>Śr</span><span>Cz</span><span>Pt</span><span>Sb</span><span>Nd</span>
           </div>
           <div class="cal-grid" id="calGrid"></div>
-          
+
           <footer class="cal-legend">
             <span class="legend-dot today"></span> dziś
             <span class="legend-dot selected"></span> wybrany
@@ -182,36 +182,28 @@
     <section class="panel pms-section" aria-label="Moduł czujnika pyłów PMS5003">
       <header class="panel-head pms-master-head">
         <div>
-          <p class="eyebrow">Air Quality: PMS5003</p>
-          <h2>Jeden blok, dwa poziomy, pełniejszy kontekst</h2>
-          <p>
-            Górna karta pokazuje frakcje live z Firebase, dolna łączy historię dobową z kalendarzem.
-            Całość jest ustawiona pionowo, żeby dashboard wyglądał jak gotowy produkt, a nie zestaw osobnych modułów.
-          </p>
+          <p class="eyebrow"></p>
+          <h2></h2>
+          <p></p>
         </div>
         <div class="panel-actions">
-          <span class="chip live"><span class="pulse"></span> RTDB live</span>
-          <span class="chip">particles.*</span>
-          <span class="chip">trend + calendar</span>
+          <span class="chip live"><span class="pulse"></span></span>
+          <span class="chip"></span>
+          <span class="chip"></span>
         </div>
       </header>
 
       <div class="pms-stack">
-        
-        <!-- PMS Live Iframe -->
-        <section class="pms-embed-panel" aria-label="Frakcje PM w uk�adzie warstwowym">
+        <section class="pms-embed-panel" aria-label="Frakcje PM w układzie warstwowym">
           <header class="panel-head pms-subhead">
             <div>
-              <p class="eyebrow">Widok live</p>
-              <h3>Frakcje PM w układzie warstwowym</h3>
-              <p>
-                Ten panel czyta bezpośrednio dane z <strong>devices/device1/latest.particles.*</strong> i pokazuje je
-                w bardziej informacyjnej, ale nadal lekkiej formie.
-              </p>
+              <p class="eyebrow"></p>
+              <h3></h3>
+              <p></p>
             </div>
             <div class="panel-actions">
-              <span class="chip">hover + click</span>
-              <span class="chip">stacked bars</span>
+              <span class="chip"></span>
+              <span class="chip"></span>
             </div>
           </header>
 
@@ -227,7 +219,6 @@
           </div>
         </section>
 
-        <!-- PMS History Details -->
         <section class="pms-inner-panel" aria-label="Historia i trend dla PMS5003">
           <header class="panel-head">
             <div>
@@ -240,79 +231,73 @@
             </div>
           </header>
 
-          <!-- PMS Grid Overview -->
-          <section class="pms5003-grid" aria-label="Pomiary pyłów zawieszonych (PM)">
+          <section class="pms5003-grid" aria-label="PMS5003 live view">
             <article class="stat-card pm-card pm1-card">
-              <header class="stat-top">
+              <div class="stat-top">
                 <p class="label">PM 1.0</p>
                 <span class="tag">μg/m³</span>
-              </header>
+              </div>
               <p class="value" id="pm1Value">--</p>
               <p class="muted" id="pm1Meta">Czekam na dane</p>
             </article>
 
             <article class="stat-card pm-card pm25-card">
-              <header class="stat-top">
+              <div class="stat-top">
                 <p class="label">PM 2.5</p>
                 <span class="tag">μg/m³</span>
-              </header>
+              </div>
               <p class="value" id="pm25Value">--</p>
               <p class="muted" id="pm25Meta">Czekam na dane</p>
             </article>
 
             <article class="stat-card pm-card pm10-card">
-              <header class="stat-top">
+              <div class="stat-top">
                 <p class="label">PM 10.0</p>
                 <span class="tag">μg/m³</span>
-              </header>
+              </div>
               <p class="value" id="pm10Value">--</p>
               <p class="muted" id="pm10Meta">Czekam na dane</p>
             </article>
           </section>
 
           <div class="panel-body split">
-            <!-- PMS Chart -->
             <div class="chart-stack">
-              <header class="chart-head">
+              <div class="chart-head">
                 <div>
                   <p class="muted" id="pmsModeInfo">Wybierz dzień w kalendarzu</p>
-                  <p class="chart-hint">Ctrl ⌃ + scroll / pinch aby przybliży�ć. Przesuń gdy jesteś nad wykresem.</p>
+                  <p class="chart-hint">Ctrl ⌃ + scroll / pinch aby przybliżyć. Przesuń gdy jesteś nad wykresem.</p>
                 </div>
                 <span class="chip" id="pmsDataDensity">–</span>
-              </header>
-
+              </div>
               <div class="chart-frame" id="pmsChartFrame">
                 <canvas id="pmsChart" aria-label="Wykres historii pyłów PM" role="img"></canvas>
                 <div class="chart-overlay" id="pmsChartLoading">Ładowanie danych…</div>
                 <div class="chart-overlay" id="pmsChartNote">Wybierz dzień, aby wczytać dane z bazy.</div>
                 <div class="chart-overlay error" id="pmsChartError">Brak danych dla tego dnia.</div>
-                <nav class="chart-controls" aria-hidden="true">
-                  <button type="button" class="chart-control" data-pms-pan="-1" aria-label="Przesuń wykres w lewo">◀</button>
-                  <button type="button" class="chart-control" data-pms-pan="1" aria-label="Przesuń wykres w prawo">▶</button>
-                </nav>
+                <div class="chart-controls" aria-hidden="true">
+                  <button type="button" class="chart-control" data-pms-pan="-1" aria-label="Przesuń wykres w lewo">‹</button>
+                  <button type="button" class="chart-control" data-pms-pan="1" aria-label="Przesuń wykres w prawo">›</button>
+                </div>
               </div>
             </div>
 
-            <!-- PMS Calendar -->
-            <aside class="calendar" aria-label="Kalendarz wyboru dnia dla pyłów">
-              <header class="cal-head">
+            <aside class="calendar" aria-label="Kalendarz wyboru dnia — pyły">
+              <div class="cal-head">
                 <button class="cal-btn" id="pmsCalPrev" title="Poprzedni miesiąc" aria-label="Poprzedni miesiąc">◀</button>
                 <div>
                   <p class="eyebrow">Dzień</p>
-                  <h3 class="cal-title" id="pmsCalTitle"> </h3>
+                  <h3 class="cal-title" id="pmsCalTitle">—</h3>
                 </div>
-                <button class="cal-btn" id="pmsCalNext" title="Następny miesiąc" aria-label="Następny miesiąc">◆</button>
-              </header>
-
+                <button class="cal-btn" id="pmsCalNext" title="Następny miesiąc" aria-label="Następny miesiąc">▶</button>
+              </div>
               <div class="cal-weekdays">
                 <span>Pn</span><span>Wt</span><span>Śr</span><span>Cz</span><span>Pt</span><span>Sb</span><span>Nd</span>
               </div>
               <div class="cal-grid" id="pmsCalGrid"></div>
-
-              <footer class="cal-legend">
+              <div class="cal-legend">
                 <span class="legend-dot today"></span> dziś
                 <span class="legend-dot selected"></span> wybrany
-              </footer>
+              </div>
             </aside>
           </div>
         </section>
