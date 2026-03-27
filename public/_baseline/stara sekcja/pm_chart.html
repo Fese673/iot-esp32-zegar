@@ -1,0 +1,1513 @@
+﻿<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PM Frakcje - Particle Cloud</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-0: #070b14;
+      --bg-1: #0a1120;
+      --panel: #0f1728;
+      --panel-2: #0b1220;
+      --stroke: rgba(151, 179, 214, 0.14);
+      --stroke-strong: rgba(151, 179, 214, 0.24);
+      --text: #e5edf7;
+      --muted: #90a6c1;
+      --teal: #4be1ec;
+      --green: #34d399;
+      --amber: #f59e0b;
+      --red: #fb7185;
+      --violet: #8b5cf6;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+      --radius: 18px;
+      --mono: 'IBM Plex Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+      --sans: 'Space Grotesk', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: var(--sans);
+      background:
+        radial-gradient(circle at 20% 15%, rgba(75, 225, 236, 0.10), transparent 26%),
+        radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.12), transparent 24%),
+        radial-gradient(circle at 50% 80%, rgba(52, 211, 153, 0.08), transparent 30%),
+        linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      padding: 24px 16px 36px;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(180deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 4px),
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,0.03), transparent 44%);
+      opacity: 0.22;
+      mix-blend-mode: soft-light;
+    }
+
+    .page {
+      width: min(1460px, 100%);
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(15,23,40,0.95), rgba(10,15,28,0.92));
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(75, 225, 236, 0.08), transparent 25%),
+        radial-gradient(circle at 100% 10%, rgba(139, 92, 246, 0.07), transparent 22%),
+        linear-gradient(180deg, rgba(255,255,255,0.03), transparent 18%, transparent 82%, rgba(255,255,255,0.02));
+      opacity: 0.9;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 16px;
+      padding: 22px;
+      align-items: stretch;
+    }
+
+    .hero-copy,
+    .hero-stats,
+    .cloud-panel,
+    .notes-panel {
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.72rem;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    .hero h1 {
+      margin-top: 8px;
+      font-size: clamp(2.1rem, 4vw, 3.6rem);
+      line-height: 0.96;
+      letter-spacing: -0.05em;
+    }
+
+    .hero-copy p {
+      margin-top: 14px;
+      max-width: 68ch;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .hero-badges,
+    .chip-row,
+    .legend-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .hero-badges { margin-top: 18px; }
+
+    .badge,
+    .chip,
+    .legend-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    .badge .dot,
+    .legend-pill .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 0 4px rgba(75,225,236,0.16);
+      flex: none;
+    }
+
+    .badge.teal .dot { background: var(--teal); }
+    .badge.amber .dot { background: var(--amber); box-shadow: 0 0 0 4px rgba(245,158,11,0.12); }
+    .badge.red .dot { background: var(--red); box-shadow: 0 0 0 4px rgba(251,113,133,0.12); }
+    .badge.violet .dot { background: var(--violet); box-shadow: 0 0 0 4px rgba(139,92,246,0.12); }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      align-content: center;
+    }
+
+    .stat-card {
+      border: 1px solid var(--stroke);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.03);
+      padding: 14px;
+      display: grid;
+      gap: 8px;
+      min-height: 112px;
+    }
+
+    .stat-card .label {
+      color: var(--muted);
+      font-size: 0.74rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.05em;
+    }
+
+    .stat-card .meta {
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+
+    .stat-card.teal .value { color: var(--teal); }
+    .stat-card.green .value { color: var(--green); }
+    .stat-card.amber .value { color: var(--amber); }
+    .stat-card.red .value { color: var(--red); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.75fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .cloud-panel,
+    .notes-panel {
+      padding: 18px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel-head h2 {
+      margin-top: 4px;
+      font-size: clamp(1.2rem, 2vw, 1.55rem);
+      letter-spacing: -0.04em;
+    }
+
+    .panel-head p {
+      margin-top: 6px;
+      color: var(--muted);
+      line-height: 1.65;
+      max-width: 68ch;
+    }
+
+    .chip-row { justify-content: flex-end; }
+
+    .chip.live {
+      color: var(--teal);
+      border-color: rgba(75,225,236,0.22);
+      background: rgba(75,225,236,0.06);
+      box-shadow: 0 0 0 1px rgba(75,225,236,0.08) inset;
+    }
+
+    .chip.live .pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 0 0 rgba(75,225,236,0.38);
+      animation: pulseRing 1.8s ease-out infinite;
+    }
+
+    .chip.dim { color: var(--muted); }
+
+    .cloud-frame {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .slot {
+      position: relative;
+      aspect-ratio: 1 / 1.18;
+      min-height: 238px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(circle at 50% 45%, rgba(75,225,236,0.06), transparent 35%),
+        linear-gradient(180deg, rgba(12,19,34,0.96), rgba(8,13,24,0.98));
+      overflow: hidden;
+      isolation: isolate;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.05),
+        inset 0 -1px 0 rgba(255,255,255,0.02);
+    }
+
+    .slot::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 48%, rgba(255,255,255,0.08), transparent 34%),
+        repeating-linear-gradient(180deg, transparent 0 3px, rgba(255,255,255,0.014) 3px 4px);
+      opacity: 0.58;
+      mix-blend-mode: screen;
+    }
+
+    .slot::after {
+      content: '';
+      position: absolute;
+      inset: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.05);
+      pointer-events: none;
+      opacity: 0.9;
+    }
+
+    .slot canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      filter: saturate(1.08) contrast(1.04);
+    }
+
+    .mode-panel {
+      display: grid;
+      gap: 12px;
+    }
+
+    .mode-panel .mode-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .mode-panel .mode-copy {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .mode-panel .mode-copy p {
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.55;
+      max-width: 60ch;
+    }
+
+    .mode-switch {
+      display: inline-flex;
+      gap: 8px;
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.03);
+      flex: none;
+    }
+
+    .mode-btn {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--sans);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    }
+
+    .mode-btn:hover {
+      color: var(--text);
+      transform: translateY(-1px);
+    }
+
+    .mode-btn.active {
+      color: var(--text);
+      background: rgba(75,225,236,0.12);
+      box-shadow: 0 0 0 1px rgba(75,225,236,0.12) inset;
+    }
+
+    .mode-summary {
+      color: rgba(229,237,247,0.88);
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .manual-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .manual-row {
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.025));
+      display: grid;
+      gap: 10px;
+    }
+
+    .manual-row-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .manual-row-head strong {
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .manual-row-head span {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      white-space: nowrap;
+    }
+
+    .manual-track {
+      display: grid;
+      gap: 8px;
+    }
+
+    .manual-track input[type='range'] {
+      width: 100%;
+      accent-color: var(--teal);
+      cursor: pointer;
+    }
+
+    .manual-track input[type='range']:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+    }
+
+    .manual-note {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.76rem;
+      line-height: 1.45;
+      flex-wrap: wrap;
+    }
+
+    .manual-note .value {
+      font-family: var(--mono);
+      color: rgba(229,237,247,0.88);
+      white-space: nowrap;
+    }
+
+    .containment-field {
+      position: absolute;
+      left: 50%;
+      top: 51%;
+      width: min(55%, 210px);
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      border-radius: 18px;
+      border: 1px solid rgba(121, 238, 177, 0.42);
+      background:
+        radial-gradient(circle at 50% 50%, rgba(121, 238, 177, 0.08), transparent 60%),
+        linear-gradient(180deg, rgba(8, 18, 18, 0.18), rgba(8, 18, 18, 0.02));
+      box-shadow:
+        0 0 0 1px rgba(121, 238, 177, 0.08) inset,
+        0 0 18px rgba(121, 238, 177, 0.08),
+        inset 0 0 30px rgba(121, 238, 177, 0.04);
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .containment-field::before,
+    .containment-field::after {
+      content: '';
+      position: absolute;
+      inset: 12px;
+      border-radius: 12px;
+      pointer-events: none;
+    }
+
+    .containment-field::before {
+      border: 1px dashed rgba(121, 238, 177, 0.2);
+      opacity: 0.9;
+    }
+
+    .containment-field::after {
+      inset: auto 12px 12px auto;
+      width: 74px;
+      height: 24px;
+      border-radius: 999px;
+      background: rgba(6, 11, 16, 0.72);
+      border: 1px solid rgba(121, 238, 177, 0.18);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset;
+      color: rgba(230, 246, 239, 0.82);
+      font-size: 0.64rem;
+      line-height: 24px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      text-align: center;
+      content: '55% norm';
+    }
+
+    .slot.safe .containment-field {
+      border-color: rgba(121, 238, 177, 0.42);
+      box-shadow:
+        0 0 0 1px rgba(121, 238, 177, 0.08) inset,
+        0 0 18px rgba(121, 238, 177, 0.08),
+        inset 0 0 30px rgba(121, 238, 177, 0.04);
+    }
+
+    .slot.amber .containment-field,
+    .slot.red .containment-field,
+    .slot.violet .containment-field {
+      border-color: rgba(251, 191, 36, 0.48);
+      box-shadow:
+        0 0 0 1px rgba(251, 191, 36, 0.08) inset,
+        0 0 20px rgba(251, 191, 36, 0.1),
+        inset 0 0 34px rgba(251, 191, 36, 0.05);
+    }
+
+    .slot.red .containment-field::before {
+      border-color: rgba(251, 113, 133, 0.3);
+    }
+
+    .slot.active .containment-field {
+      animation: containmentPulse 3.4s ease-in-out infinite;
+    }
+
+    @keyframes containmentPulse {
+      0%,
+      100% {
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      50% {
+        transform: translate(-50%, -50%) scale(1.03);
+      }
+    }
+
+    .slot-overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 14px;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .slot-head,
+    .slot-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .slot-title {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(229,237,247,0.72);
+    }
+
+    .slot-badge {
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .slot-center {
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 6px;
+      text-align: center;
+      padding: 16px 0;
+    }
+
+    .slot-value {
+      font-family: var(--mono);
+      font-size: clamp(1.45rem, 2.8vw, 2.4rem);
+      font-weight: 700;
+      letter-spacing: -0.05em;
+      text-shadow: 0 0 18px rgba(255,255,255,0.12);
+    }
+
+    .slot-percent {
+      font-size: 0.84rem;
+      color: rgba(229,237,247,0.68);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .slot-fraction {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .slot-foot {
+      align-items: end;
+    }
+
+    .slot-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .slot-meta .kicker {
+      color: var(--muted);
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .slot-meta .line {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: rgba(229,237,247,0.82);
+      white-space: nowrap;
+    }
+
+    .slot-flare {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(75,225,236,0.92) 0%, rgba(75,225,236,0.18) 40%, transparent 70%);
+      box-shadow: 0 0 24px rgba(75,225,236,0.26);
+      opacity: 0.72;
+      flex: none;
+    }
+
+    .slot.active {
+      border-color: rgba(75,225,236,0.22);
+      box-shadow:
+        0 0 0 1px rgba(75,225,236,0.12) inset,
+        0 20px 40px rgba(0,0,0,0.22);
+    }
+
+    .slot.active .slot-flare {
+      animation: flarePulse 2.8s ease-in-out infinite;
+    }
+
+    .slot.good .slot-value { color: var(--green); }
+    .slot.good .slot-flare { background: radial-gradient(circle, rgba(52,211,153,0.92) 0%, rgba(52,211,153,0.18) 40%, transparent 70%); box-shadow: 0 0 24px rgba(52,211,153,0.24); }
+    .slot.teal .slot-value { color: var(--teal); }
+    .slot.teal .slot-flare { background: radial-gradient(circle, rgba(75,225,236,0.94) 0%, rgba(75,225,236,0.18) 42%, transparent 72%); box-shadow: 0 0 24px rgba(75,225,236,0.26); }
+    .slot.amber .slot-value { color: var(--amber); }
+    .slot.amber .slot-flare { background: radial-gradient(circle, rgba(245,158,11,0.96) 0%, rgba(245,158,11,0.18) 42%, transparent 72%); box-shadow: 0 0 24px rgba(245,158,11,0.26); }
+    .slot.red .slot-value { color: var(--red); }
+    .slot.red .slot-flare { background: radial-gradient(circle, rgba(251,113,133,0.96) 0%, rgba(251,113,133,0.20) 42%, transparent 74%); box-shadow: 0 0 24px rgba(251,113,133,0.26); }
+
+    .slot.flash .slot-value {
+      animation: valuePop 240ms ease-out;
+    }
+
+    .slot.flash .slot-badge {
+      animation: valuePop 240ms ease-out;
+    }
+
+    .notes-panel {
+      display: grid;
+      gap: 14px;
+    }
+
+    .note-block {
+      border: 1px solid var(--stroke);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.03);
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .note-block h3 {
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .note-block p,
+    .note-block li {
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 0.92rem;
+    }
+
+    .note-list {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .signal-box {
+      display: grid;
+      gap: 10px;
+    }
+
+    .signal-meter {
+      height: 16px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.03);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .signal-meter span {
+      position: absolute;
+      inset: 0;
+      width: 55%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(75,225,236,0.95), rgba(139,92,246,0.92), rgba(251,113,133,0.94));
+      box-shadow: 0 0 24px rgba(75,225,236,0.24);
+      transform-origin: left center;
+      transform: scaleX(var(--sig, 0.55));
+      transition: transform 180ms ease;
+    }
+
+    .signal-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      flex-wrap: wrap;
+    }
+
+    .legend-row {
+      gap: 8px;
+    }
+
+    .legend-pill .dot.calm { background: var(--violet); box-shadow: 0 0 0 4px rgba(139,92,246,0.12); }
+    .legend-pill .dot.good { background: var(--green); box-shadow: 0 0 0 4px rgba(52,211,153,0.12); }
+    .legend-pill .dot.warn { background: var(--amber); box-shadow: 0 0 0 4px rgba(245,158,11,0.12); }
+    .legend-pill .dot.alert { background: var(--red); box-shadow: 0 0 0 4px rgba(251,113,133,0.12); }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.6;
+    }
+
+    #tt {
+      position: fixed;
+      z-index: 999;
+      display: none;
+      pointer-events: none;
+      min-width: 220px;
+      max-width: 260px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(8,12,22,0.96);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.42);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.7;
+      backdrop-filter: blur(10px);
+    }
+
+    #tt b {
+      display: block;
+      margin-bottom: 6px;
+      font-family: var(--sans);
+      font-size: 0.92rem;
+      color: #fff;
+      letter-spacing: -0.01em;
+    }
+
+    #tt .calm { color: var(--violet); }
+    #tt .good { color: var(--green); }
+    #tt .warn { color: var(--amber); }
+    #tt .alert { color: var(--red); }
+
+    .glow-orbit {
+      position: absolute;
+      inset: -10% -10% auto;
+      height: 120%;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(75,225,236,0.10), transparent 34%),
+        radial-gradient(circle at 50% 50%, rgba(251,113,133,0.08), transparent 44%);
+      filter: blur(16px);
+      opacity: 0.82;
+      animation: orbitGlow 10s ease-in-out infinite alternate;
+    }
+
+    @keyframes orbitGlow {
+      from { transform: translateY(6px) scale(0.98); }
+      to { transform: translateY(-8px) scale(1.02); }
+    }
+
+    @keyframes pulseRing {
+      0% { box-shadow: 0 0 0 0 rgba(75,225,236,0.34); transform: scale(1); }
+      70% { box-shadow: 0 0 0 14px rgba(75,225,236,0); transform: scale(1.05); }
+      100% { box-shadow: 0 0 0 0 rgba(75,225,236,0); transform: scale(1); }
+    }
+
+    @keyframes flarePulse {
+      0%, 100% { transform: scale(1); opacity: 0.72; }
+      50% { transform: scale(1.14); opacity: 1; }
+    }
+
+    @keyframes valuePop {
+      0% { transform: scale(0.96); opacity: 0.76; }
+      70% { transform: scale(1.04); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @media (max-width: 1180px) {
+      .hero,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-stats {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .cloud-frame {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 16px 12px 24px; }
+      .hero,
+      .cloud-panel,
+      .notes-panel { padding: 16px; }
+      .hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .cloud-frame { grid-template-columns: 1fr; }
+      .slot { min-height: 260px; }
+      .panel-head { flex-direction: column; }
+      .chip-row { justify-content: flex-start; }
+      .legend-row { gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="panel hero">
+      <div class="hero-copy">
+        <p class="eyebrow">PMS5003 / heatmap particle cloud</p>
+        <h1>Mapa Gęstości Cząstek</h1>
+        <p>
+          Zamiast klasycznego wykresu masz tu aktywne sloty frakcji, w których chmura, blask i mikroruch
+          sugerują masę cząstek. To jest podgląd o wysokim napięciu wizualnym, ale nadal zoptymalizowany,
+          bo render opiera się na niewielkiej liczbie sprite'ów i płynnej interpolacji, a nie na ciężkim DOM.
+        </p>
+        <div class="hero-badges">
+          <span class="badge teal"><span class="dot"></span> 200k virtual particles</span>
+          <span class="badge amber"><span class="dot"></span> additive glow</span>
+          <span class="badge violet"><span class="dot"></span> active center</span>
+          <span class="badge red"><span class="dot"></span> bomb-ready concept</span>
+        </div>
+      </div>
+
+      <div class="hero-stats">
+        <article class="stat-card teal">
+          <div class="label">Symulowana masa</div>
+          <div class="value" id="massValue">--</div>
+          <div class="meta" id="massMeta">--</div>
+        </article>
+        <article class="stat-card green">
+          <div class="label">Najsilniejszy slot</div>
+          <div class="value" id="peakValue">--</div>
+          <div class="meta" id="peakMeta">--</div>
+        </article>
+        <article class="stat-card amber">
+          <div class="label">Średnia gęstość</div>
+          <div class="value" id="avgValue">--</div>
+          <div class="meta">Intensywność chmury w całym układzie</div>
+        </article>
+        <article class="stat-card red">
+          <div class="label">Stan systemu</div>
+          <div class="value">LIVE</div>
+          <div class="meta" id="systemMeta">Aktywna symulacja cząstek</div>
+        </article>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel cloud-panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Particle cloud</p>
+            <h2>Aktywne centrum i gęstość cząstek per frakcja</h2>
+            <p>
+              Każdy slot jest osobną chmurą z rozmytym rdzeniem, żywą poświatą i mikrozamieszaniem.
+              Wartości aktualizują się płynnie, a całość jest zrobiona tak, by później łatwo podmienić
+              symulację na realne dane bez przebudowy layoutu.
+            </p>
+          </div>
+          <div class="chip-row">
+            <span class="chip live"><span class="pulse"></span> symulacja aktywna</span>
+            <span class="chip dim">virtual budget: 200k</span>
+            <span class="chip dim">sprite pool</span>
+            <span class="chip dim">low DOM</span>
+          </div>
+        </div>
+
+        <div class="cloud-frame" id="cloudFrame"></div>
+      </section>
+
+      <aside class="panel notes-panel">
+        <div class="note-block mode-panel">
+          <div class="mode-head">
+            <div class="mode-copy">
+              <h3>Tryb sterowania</h3>
+              <p>
+                LIVE zostawia generator samemu sobie. STATIC pozwala ręcznie ustawić bazę każdej frakcji,
+                ale chmura i tak nadal krąży, pulsuje i oddycha wokół ustawionego punktu.
+              </p>
+            </div>
+            <div class="mode-switch" role="tablist" aria-label="Tryb sterowania wykresem">
+              <button type="button" class="mode-btn active" data-mode="live">LIVE</button>
+              <button type="button" class="mode-btn" data-mode="manual">STATIC</button>
+            </div>
+          </div>
+          <div class="mode-summary" id="modeSummary">Tryb live: baza danych zmienia się automatycznie.</div>
+          <div class="manual-grid" id="manualControls"></div>
+        </div>
+
+        <div class="note-block">
+          <h3>Założenia konceptu 2</h3>
+          <ul class="note-list">
+            <li>zamiast słupków masz chmury gęstości z aktywnym centrum</li>
+            <li>kolor i rozmiar plamy reagują na poziom zanieczyszczenia</li>
+            <li>mikrocząstki mrugają i krążą, ale są renderowane wydajnie</li>
+          </ul>
+        </div>
+
+        <div class="note-block">
+          <h3>Mapa kolorów</h3>
+          <div class="legend-row">
+            <span class="legend-pill"><span class="dot calm"></span> optimal</span>
+            <span class="legend-pill"><span class="dot good"></span> norma</span>
+            <span class="legend-pill"><span class="dot warn"></span> uwaga</span>
+            <span class="legend-pill"><span class="dot alert"></span> alarm</span>
+          </div>
+        </div>
+
+        <div class="note-block">
+          <h3>Wydajność</h3>
+          <ul class="note-list">
+            <li>renderowane są sprite'y na canvasie, a nie tysiące elementów DOM</li>
+            <li>gęstość jest „virtualna” i może symulować 200k bez ścinania strony</li>
+            <li>animacja działa tylko na widocznych slotach i pauzuje w tle</li>
+          </ul>
+        </div>
+
+        <div class="note-block">
+          <h3>Trend</h3>
+          <div class="signal-box">
+            <div class="signal-meter"><span id="signalBar"></span></div>
+            <div class="signal-meta">
+              <span>napięcie pola</span>
+              <span id="signalLabel">stabilne</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="footer-note">
+          To jest osobny mockup, jeszcze nie wpięty do głównego dashboardu. Został przygotowany tak,
+          żeby później dało się go podmienić na realne dane bez zmiany języka wizualnego.
+        </p>
+      </aside>
+    </main>
+  </div>
+
+  <div id="tt"></div>
+
+  <script>
+    const SLOT_DATA = [
+      { id: 'pm03', label: '0.3 μm', maxVal: 1200000, base: 912400, palette: 'red' },
+      { id: 'pm05', label: '0.5 μm', maxVal: 240000, base: 168200, palette: 'amber' },
+      { id: 'pm10', label: '1.0 μm', maxVal: 45000, base: 28800, palette: 'green' },
+      { id: 'pm25', label: '2.5 μm', maxVal: 6000, base: 3200, palette: 'teal' },
+      { id: 'pm50', label: '5.0 μm', maxVal: 700, base: 472, palette: 'violet' },
+      { id: 'pm100', label: '10 μm', maxVal: 60, base: 31, palette: 'amber' },
+    ];
+
+    const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+    const lerp = (from, to, amount) => from + (to - from) * amount;
+    const fmtCompact = (value) => {
+      if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
+      if (value >= 1e3) return `${(value / 1e3).toFixed(1)}k`;
+      return String(value);
+    };
+    const fmtMax = (value) => {
+      if (value >= 1e6) return `max ${(value / 1e6).toFixed(2)}M`;
+      if (value >= 1e3) return `max ${(value / 1e3).toFixed(0)}k`;
+      return `max ${value}`;
+    };
+    const rand = (min, max) => min + Math.random() * (max - min);
+
+    let controlMode = 'live';
+
+    const state = SLOT_DATA.map((slot, index) => ({
+      ...slot,
+      index,
+      current: slot.base * rand(0.74, 0.92),
+      target: slot.base,
+      manualBase: slot.base,
+      manualPct: Math.round((slot.base / slot.maxVal) * 100),
+      density: rand(0.35, 0.72),
+      energy: rand(0.28, 0.72),
+      phase: rand(0, Math.PI * 2),
+      swirl: rand(0.45, 1.2),
+      drift: rand(-0.22, 0.22),
+      kick: 0,
+      nextKick: rand(0.45, 2.8),
+      flashUntil: 0,
+      particles: [],
+      canvas: null,
+      ctx: null,
+      width: 0,
+      height: 0,
+      sprites: null,
+      elements: {},
+    }));
+
+    const frame = document.getElementById('cloudFrame');
+    const tt = document.getElementById('tt');
+    const massValue = document.getElementById('massValue');
+    const massMeta = document.getElementById('massMeta');
+    const peakValue = document.getElementById('peakValue');
+    const peakMeta = document.getElementById('peakMeta');
+    const avgValue = document.getElementById('avgValue');
+    const systemMeta = document.getElementById('systemMeta');
+    const signalBar = document.getElementById('signalBar');
+    const signalLabel = document.getElementById('signalLabel');
+    const modeSummary = document.getElementById('modeSummary');
+    const manualControls = document.getElementById('manualControls');
+    const modeButtons = Array.from(document.querySelectorAll('[data-mode]'));
+
+    const manualValueText = (slot) => `${Math.round(slot.manualPct)}% · ${fmtCompact(Math.round(slot.manualBase))}`;
+
+    const syncModeUI = () => {
+      modeButtons.forEach((button) => {
+        button.classList.toggle('active', button.dataset.mode === controlMode);
+      });
+
+      state.forEach((slot) => {
+        if (slot.elements.input) slot.elements.input.disabled = controlMode === 'live';
+        if (slot.elements.readout) slot.elements.readout.textContent = manualValueText(slot);
+      });
+
+      modeSummary.textContent = controlMode === 'manual'
+        ? 'Tryb statyczny: suwaki sterują bazą każdej frakcji, a animacja nadal pozostaje żywa.'
+        : 'Tryb live: baza danych zmienia się automatycznie, suwaki zachowują tylko preset manualny.';
+
+      systemMeta.textContent = controlMode === 'manual'
+        ? 'Tryb statyczny aktywny: ręczne sterowanie bazą frakcji'
+        : 'Aktywna symulacja cząstek';
+    };
+
+    const setManualBase = (slot, pct) => {
+      const safePct = clamp(Number(pct) || 0, 0, 100);
+      slot.manualPct = safePct;
+      slot.manualBase = clamp(Math.round(slot.maxVal * (safePct / 100)), Math.round(slot.maxVal * 0.05), slot.maxVal);
+      if (slot.elements.readout) slot.elements.readout.textContent = manualValueText(slot);
+    };
+
+    const setControlMode = (nextMode) => {
+      controlMode = nextMode;
+      syncModeUI();
+    };
+
+    const buildManualControls = () => {
+      manualControls.innerHTML = '';
+
+      state.forEach((slot) => {
+        const row = document.createElement('div');
+        row.className = 'manual-row';
+        row.innerHTML = `
+          <div class="manual-row-head">
+            <strong>${slot.label}</strong>
+            <span data-readout></span>
+          </div>
+          <div class="manual-track">
+            <input type="range" min="0" max="100" step="1" value="${slot.manualPct}" aria-label="${slot.label} manual value">
+            <div class="manual-note">
+              <span>0-100% skali bazę, ale chmura dalej pracuje dynamicznie.</span>
+              <span class="value">${manualValueText(slot)}</span>
+            </div>
+          </div>
+        `;
+
+        const input = row.querySelector('input[type="range"]');
+        const readout = row.querySelector('[data-readout]');
+        const valueLabel = row.querySelector('.manual-note .value');
+
+        slot.elements.input = input;
+        slot.elements.readout = readout;
+        setManualBase(slot, slot.manualPct);
+
+        input.addEventListener('input', (event) => {
+          setManualBase(slot, event.target.value);
+          valueLabel.textContent = manualValueText(slot);
+
+          if (controlMode === 'manual') {
+            slot.target = slot.manualBase;
+            slot.current = lerp(slot.current, slot.manualBase, 0.22);
+          }
+        });
+
+        manualControls.appendChild(row);
+      });
+    };
+
+    const paletteMap = {
+      calm: ['rgba(139,92,246,0.95)', 'rgba(75,225,236,0.9)'],
+      teal: ['rgba(75,225,236,0.96)', 'rgba(52,211,153,0.9)'],
+      green: ['rgba(52,211,153,0.96)', 'rgba(75,225,236,0.9)'],
+      amber: ['rgba(245,158,11,0.98)', 'rgba(251,191,36,0.92)'],
+      red: ['rgba(251,113,133,0.98)', 'rgba(244,63,94,0.92)'],
+      violet: ['rgba(139,92,246,0.98)', 'rgba(168,85,247,0.92)'],
+    };
+
+    const severityFor = (value, maxVal) => {
+      const pct = (value / maxVal) * 100;
+      if (pct >= 78) return 'red';
+      if (pct >= 58) return 'amber';
+      if (pct >= 32) return 'green';
+      return 'calm';
+    };
+
+    const severityLabel = (severity) => ({
+      calm: 'optimal',
+      green: 'norma',
+      amber: 'uwaga',
+      red: 'alarm',
+      violet: 'energia',
+    }[severity] || 'norma');
+
+    const makeSprite = (size, colorA, colorB) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size * 2;
+      canvas.height = size * 2;
+      const ctx = canvas.getContext('2d');
+      const gradient = ctx.createRadialGradient(size, size, 0, size, size, size);
+      gradient.addColorStop(0, colorA);
+      gradient.addColorStop(0.38, colorA.replace(/0\.[0-9]+\)/, '0.42)'));
+      gradient.addColorStop(1, colorB);
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(size, size, size, 0, Math.PI * 2);
+      ctx.fill();
+      return canvas;
+    };
+
+    const buildSlot = (slot) => {
+      const el = document.createElement('article');
+      el.className = `slot ${slot.palette}`;
+      el.innerHTML = `
+        <canvas></canvas>
+        <div class="containment-field" data-field aria-hidden="true"></div>
+        <div class="slot-overlay">
+          <div class="slot-head">
+            <span class="slot-title">${slot.label}</span>
+            <span class="slot-badge" data-badge>loading</span>
+          </div>
+          <div class="slot-center">
+            <div class="slot-value" data-value>--</div>
+            <div class="slot-percent" data-percent>--%</div>
+            <div class="slot-fraction" data-fraction>${slot.label}</div>
+          </div>
+          <div class="slot-foot">
+            <div class="slot-meta">
+              <span class="kicker">maksymalne tło</span>
+              <span class="line" data-max>${fmtMax(slot.maxVal)}</span>
+            </div>
+            <div class="slot-flare" data-flare></div>
+          </div>
+        </div>
+      `;
+
+      slot.canvas = el.querySelector('canvas');
+      slot.ctx = slot.canvas.getContext('2d', { alpha: true, desynchronized: true });
+      slot.elements = {
+        root: el,
+        badge: el.querySelector('[data-badge]'),
+        value: el.querySelector('[data-value]'),
+        percent: el.querySelector('[data-percent]'),
+        fraction: el.querySelector('[data-fraction]'),
+        max: el.querySelector('[data-max]'),
+        flare: el.querySelector('[data-flare]'),
+        field: el.querySelector('[data-field]'),
+      };
+
+      slot.sprites = [
+        makeSprite(5, 'rgba(255,255,255,0.95)', 'rgba(255,255,255,0.00)'),
+        makeSprite(9, 'rgba(255,255,255,0.86)', 'rgba(255,255,255,0.00)'),
+        makeSprite(16, 'rgba(255,255,255,0.72)', 'rgba(255,255,255,0.00)')
+      ];
+
+      frame.appendChild(el);
+    };
+
+    state.forEach(buildSlot);
+
+    const resizeSlot = (slot) => {
+      const rect = slot.canvas.getBoundingClientRect();
+      const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+      const width = Math.max(1, Math.floor(rect.width * dpr));
+      const height = Math.max(1, Math.floor(rect.height * dpr));
+
+      if (slot.width === width && slot.height === height) return;
+      slot.width = width;
+      slot.height = height;
+      slot.canvas.width = width;
+      slot.canvas.height = height;
+      slot.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      slot.ctx.scale(dpr, dpr);
+      slot.ctx.imageSmoothingEnabled = true;
+
+      const count = clamp(Math.round(240 + slot.index * 40 + slot.current / slot.maxVal * 260), 220, 620);
+      slot.particles = Array.from({ length: count }, () => createParticle(slot));
+    };
+
+    const createParticle = (slot) => {
+      const orbit = rand(0.12, 0.5);
+      const radius = rand(0.06, 0.46) * orbit;
+      return {
+        angle: rand(0, Math.PI * 2),
+        radius,
+        radiusBase: radius,
+        spin: rand(0.15, 0.85) * (Math.random() > 0.5 ? 1 : -1),
+        phase: rand(0, Math.PI * 2),
+        life: rand(0, 1),
+        size: rand(0.35, 1.1),
+        alpha: rand(0.04, 0.16),
+        twinkle: rand(0.2, 1.0),
+        drift: rand(-0.04, 0.04),
+      };
+    };
+
+    const renderSlot = (slot, timeSeconds) => {
+      const ctx = slot.ctx;
+      const width = slot.canvas.clientWidth;
+      const height = slot.canvas.clientHeight;
+      const severity = severityFor(slot.current, slot.maxVal);
+      const pct = clamp((slot.current / slot.maxVal) * 100, 0, 100);
+      const energy = clamp(pct / 100, 0.02, 1);
+      const cx = width * 0.5;
+      const cy = height * 0.48;
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.globalCompositeOperation = 'source-over';
+
+      const bg = ctx.createRadialGradient(cx, cy, 10, cx, cy, Math.max(width, height) * 0.75);
+      bg.addColorStop(0, 'rgba(255,255,255,0.03)');
+      bg.addColorStop(0.35, severity === 'red' ? 'rgba(251,113,133,0.06)' : severity === 'amber' ? 'rgba(245,158,11,0.05)' : severity === 'green' ? 'rgba(52,211,153,0.05)' : 'rgba(75,225,236,0.05)');
+      bg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, width, height);
+
+      // subtle density rings
+      ctx.strokeStyle = severity === 'red' ? 'rgba(251,113,133,0.12)' : severity === 'amber' ? 'rgba(245,158,11,0.10)' : severity === 'green' ? 'rgba(52,211,153,0.10)' : 'rgba(75,225,236,0.10)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 3; i += 1) {
+        const ring = Math.min(width, height) * (0.16 + i * 0.1 + energy * 0.03);
+        ctx.globalAlpha = 0.22 - i * 0.04;
+        ctx.beginPath();
+        ctx.arc(cx, cy, ring, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      const glowA = paletteMap[severity][0];
+      const glowB = paletteMap[severity][1];
+
+      // central bloom
+      const bloom = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(width, height) * (0.14 + energy * 0.22));
+      bloom.addColorStop(0, glowA.replace('0.95', '0.96').replace('0.98', '0.96'));
+      bloom.addColorStop(0.35, glowB.replace('0.9', '0.36').replace('0.92', '0.36'));
+      bloom.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = 0.88;
+      ctx.fillStyle = bloom;
+      ctx.beginPath();
+      ctx.arc(cx, cy, Math.min(width, height) * (0.17 + energy * 0.2), 0, Math.PI * 2);
+      ctx.fill();
+
+      const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(width, height) * (0.23 + energy * 0.26));
+      halo.addColorStop(0, glowA.replace('0.95', '0.24').replace('0.96', '0.24'));
+      halo.addColorStop(0.48, glowB.replace('0.9', '0.12').replace('0.92', '0.12'));
+      halo.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = 0.72;
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(cx, cy, Math.min(width, height) * (0.28 + energy * 0.2), 0, Math.PI * 2);
+      ctx.fill();
+
+      // particles
+      ctx.globalCompositeOperation = 'lighter';
+      for (const p of slot.particles) {
+        p.angle += p.spin * (0.014 + energy * 0.028);
+        p.life += 0.006 + energy * 0.01;
+
+        const targetRadius = Math.min(width, height) * (0.05 + energy * 0.34) + Math.sin(timeSeconds * 0.7 + p.phase) * Math.min(width, height) * 0.015;
+        p.radius = lerp(p.radius, targetRadius, 0.015 + energy * 0.01);
+
+        const wobble = Math.sin(timeSeconds * 1.5 + p.phase) * (0.03 + energy * 0.02);
+        const swirl = Math.cos(timeSeconds * 0.9 + p.phase * 1.7) * (0.02 + energy * 0.015);
+
+        const x = cx + Math.cos(p.angle + wobble) * p.radius * (0.98 + p.drift);
+        const y = cy + Math.sin(p.angle * 1.02 + swirl) * p.radius * 0.78;
+
+        const size = (p.size + energy * 0.9) * (slot.canvas.clientWidth < 320 ? 0.86 : 1);
+        const sprite = slot.sprites[p.life % 1 > 0.66 ? 2 : p.life % 1 > 0.33 ? 1 : 0];
+        const alpha = p.alpha + energy * 0.18 + Math.sin(timeSeconds * p.twinkle + p.phase) * 0.018;
+        ctx.globalAlpha = clamp(alpha, 0.04, 0.42);
+        ctx.drawImage(sprite, x - size, y - size, size * 2, size * 2);
+      }
+
+      // faint active core to preserve focus
+      const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(width, height) * (0.09 + energy * 0.09));
+      core.addColorStop(0, 'rgba(255,255,255,0.12)');
+      core.addColorStop(0.18, glowA.replace('0.95', '0.44').replace('0.98', '0.44'));
+      core.addColorStop(0.55, glowB.replace('0.9', '0.18').replace('0.92', '0.18'));
+      core.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = 0.94;
+      ctx.fillStyle = core;
+      ctx.beginPath();
+      ctx.arc(cx, cy, Math.min(width, height) * (0.08 + energy * 0.07), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // overlay text and state
+      slot.elements.root.classList.remove('calm', 'good', 'amber', 'red', 'violet');
+      slot.elements.root.classList.add(severity);
+
+      const label = severityLabel(severity);
+      const currentText = fmtCompact(Math.round(slot.current));
+      const pctText = `${Math.round(pct)}%`;
+      const virtualParticles = Math.round(energy * 200000);
+      const fieldState = pct >= 55 ? 'breach' : 'safe';
+
+      slot.elements.value.textContent = currentText;
+      slot.elements.percent.textContent = `${pctText} density`;
+      slot.elements.badge.textContent = label;
+      slot.elements.max.textContent = `${fmtMax(slot.maxVal)} · ${virtualParticles.toLocaleString('pl-PL')} virtual`;
+      slot.elements.fraction.textContent = slot.label;
+      slot.elements.root.classList.toggle('active', energy > 0.42);
+      slot.elements.root.classList.toggle('safe', fieldState === 'safe');
+      slot.elements.root.classList.toggle('containment-breach', fieldState === 'breach');
+
+      if (slot.flashUntil > timeSeconds) {
+        slot.elements.root.classList.add('flash');
+      } else {
+        slot.elements.root.classList.remove('flash');
+      }
+
+      return { pct, severity, label, virtualParticles };
+    };
+
+    const updateSlotTarget = (slot, timeSeconds) => {
+      if (timeSeconds >= slot.nextKick) {
+        slot.nextKick = timeSeconds + rand(0.8, 2.6);
+        slot.kick = rand(0.35, 1);
+        slot.flashUntil = timeSeconds + 0.24;
+      }
+
+      slot.kick = Math.max(0, slot.kick - 0.012);
+
+      const base = controlMode === 'manual' ? slot.manualBase : slot.base;
+      const manualTightness = controlMode === 'manual' ? 0.7 : 1;
+      const wave = Math.sin(timeSeconds * (0.9 + slot.index * 0.13) + slot.phase) * (slot.maxVal * 0.06 + slot.index * 0.018 * slot.maxVal) * manualTightness;
+      const surge = Math.max(0, Math.sin(timeSeconds * 1.8 + slot.phase * 1.2)) * (slot.maxVal * 0.08 + slot.index * 0.02 * slot.maxVal) * manualTightness;
+      const drift = Math.sin(timeSeconds * 0.24 + slot.index) * (slot.maxVal * 0.03) + slot.drift * slot.maxVal * 0.04;
+      const kick = slot.kick * (slot.maxVal * (0.08 + slot.index * 0.012));
+
+      slot.target = clamp(base + wave + surge + drift + kick, slot.maxVal * 0.05, slot.maxVal * 0.98);
+      slot.energy = clamp(slot.current / slot.maxVal, 0.02, 1);
+    };
+
+    const adjustSignal = (averagePct, peakPct) => {
+      const signal = clamp(averagePct / 100 * 0.55 + peakPct / 100 * 0.45, 0.1, 1);
+      signalBar.style.setProperty('--sig', signal.toFixed(2));
+      signalLabel.textContent = signal > 0.78 ? 'alarmowy puls' : signal > 0.56 ? 'wysokie napięcie' : signal > 0.35 ? 'aktywne' : 'stabilne';
+    };
+
+    const updateHero = (stats) => {
+      const total = stats.reduce((sum, item) => sum + item.virtualParticles, 0);
+      const avgPct = Math.round(stats.reduce((sum, item) => sum + item.pct, 0) / stats.length);
+      const peak = state.reduce((acc, slot) => (slot.current > acc.current ? slot : acc), state[0]);
+      const peakPct = Math.round((peak.current / peak.maxVal) * 100);
+
+      massValue.textContent = `${(total / 1000).toFixed(1)}k`;
+      massMeta.textContent = `${avgPct}% średniej gęstości · ${stats.length} slotów`;
+      peakValue.textContent = fmtCompact(Math.round(peak.current));
+      peakMeta.textContent = `${peak.label} · ${peakPct}% · ${severityLabel(severityFor(peak.current, peak.maxVal))}`;
+      avgValue.textContent = `${avgPct}%`;
+      systemMeta.textContent = controlMode === 'manual'
+        ? `Tryb statyczny: ${total.toLocaleString('pl-PL')} virtual particles pod ręczną bazą`
+        : `Wysoka gęstość: ${total.toLocaleString('pl-PL')} virtual particles`;
+      adjustSignal(avgPct, peakPct);
+    };
+
+    let frameCount = 0;
+    let running = true;
+    let lastTime = 0;
+
+    const resizeAll = () => state.forEach((slot) => resizeSlot(slot));
+    const observer = new ResizeObserver(resizeAll);
+    document.querySelectorAll('.slot').forEach((el) => observer.observe(el));
+    window.addEventListener('resize', resizeAll);
+
+    modeButtons.forEach((button) => {
+      button.addEventListener('click', () => setControlMode(button.dataset.mode));
+    });
+
+    buildManualControls();
+    syncModeUI();
+
+    const tick = (now) => {
+      if (!running) return;
+      const timeSeconds = now / 1000;
+      const stats = [];
+
+      for (const slot of state) {
+        updateSlotTarget(slot, timeSeconds);
+        slot.current = lerp(slot.current, slot.target, 0.085);
+
+        if (!slot.width || !slot.height) resizeSlot(slot);
+
+        const stat = renderSlot(slot, timeSeconds);
+        stats.push(stat);
+
+        // keep label updates lightweight and alive
+        if (frameCount % 10 === 0) {
+          slot.elements.max.textContent = `${fmtMax(slot.maxVal)} · ${Math.round(stat.pct).toLocaleString('pl-PL')}%`;
+        }
+      }
+
+      updateHero(stats);
+      frameCount += 1;
+      lastTime = timeSeconds;
+
+      if (document.visibilityState === 'visible') {
+        requestAnimationFrame(tick);
+      }
+    };
+
+    const tooltipBind = (slot) => {
+      slot.elements.root.addEventListener('mousemove', (event) => {
+        const pct = Math.round((slot.current / slot.maxVal) * 100);
+        const severity = severityFor(slot.current, slot.maxVal);
+        tt.style.display = 'block';
+        tt.style.left = `${event.clientX + 16}px`;
+        tt.style.top = `${event.clientY - 12}px`;
+        tt.innerHTML = `
+          <b>${slot.label}</b>
+          Stan: <span class="${severity}">${severityLabel(severity).toUpperCase()}</span><br>
+          Odczyt: ${fmtCompact(Math.round(slot.current))}<br>
+          Maks: ${fmtMax(slot.maxVal)}<br>
+          Gęstość: ${pct}%
+        `;
+      });
+
+      slot.elements.root.addEventListener('mouseleave', () => {
+        tt.style.display = 'none';
+      });
+    };
+
+    state.forEach(tooltipBind);
+    resizeAll();
+    updateHero(state.map((slot) => ({
+      pct: Math.round((slot.current / slot.maxVal) * 100),
+      virtualParticles: Math.round((slot.current / slot.maxVal) * 200000),
+    })));
+
+    document.addEventListener('mousemove', (event) => {
+      if (tt.style.display !== 'block') return;
+      const rect = tt.getBoundingClientRect();
+      const maxLeft = window.innerWidth - rect.width - 12;
+      const maxTop = window.innerHeight - rect.height - 12;
+      tt.style.left = `${Math.min(event.clientX + 16, maxLeft)}px`;
+      tt.style.top = `${Math.min(event.clientY - 12, maxTop)}px`;
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        running = false;
+        systemMeta.textContent = 'Symulacja wstrzymana w tle';
+      } else {
+        if (running) return;
+        running = true;
+        systemMeta.textContent = 'Symulacja wznowiona';
+        requestAnimationFrame(tick);
+      }
+    });
+
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
+
