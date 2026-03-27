@@ -83,9 +83,9 @@ function PmsSection() {
         <section className="pms-inner-panel" aria-label="Historia i trend dla PMS5003">
           <header className="panel-head">
             <div>
-              <p className="eyebrow">Widok archiwalny</p>
-              <h3>Trend dobowy i korelacja z kalendarzem</h3>
-              <p>Wybierz dzień, aby zobaczyć historię PM i dołączyć dzisiejszy live feed, gdy patrzysz na dziś.</p>
+              <p className="eyebrow">WYKRES 2</p>
+              <h3>Drugi wykres dla samych przetworzonych danych PM</h3>
+              <p>Wybierz dzień, aby zobaczyć historię PM i dołączyć dzisiejszy live feed, gdy patrzysz na dziś. NIE usuwać tej sekcji</p>
             </div>
             <div className="panel-actions">
               <button className="primary-btn" id="pmsBtnToday" type="button" onClick={() => calendar.selectDate(calendar.state.today)}>Dziś</button>
