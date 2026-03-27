@@ -58,7 +58,11 @@ function snapshotToPmsRecords(snapshotValue: unknown): PmsRecord[] {
   return records.sort((left, right) => toEpochMs(left.ts) - toEpochMs(right.ts));
 }
 
-export function subscribePmsLive(deviceId: string, callback: (data: PmsRecord) => void): () => void {
+export function subscribePmsLive(
+  deviceId: string,
+  callback: (data: PmsRecord) => void,
+  onError?: (error: Error) => void,
+): () => void {
   const liveRef = ref(db, `${getDevicePath(deviceId)}/latest`);
 
   const unsubscribe = onValue(liveRef, (snapshot) => {
@@ -66,7 +70,7 @@ export function subscribePmsLive(deviceId: string, callback: (data: PmsRecord) =
     if (record) {
       callback(record);
     }
-  });
+  }, onError);
 
   return () => unsubscribe();
 }

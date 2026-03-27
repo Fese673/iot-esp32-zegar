@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAppContext } from '../../../App';
-import { subscribeLiveMetrics } from '../api/firebaseAdapter';
-import type { LoadState, LiveRecord } from '../../../shared/types';
+import { subscribePmsLive } from '../api/pmsAdapter';
+import { pickPmsRaw } from '../lib/pmsHelpers';
+import type { LoadState, PmsRaw, PmsRecord } from '../../../shared/types';
 
 function getDeviceId(): string {
   return window.__DEVICE_ID__ || localStorage.getItem('firebaseDeviceId') || 'device1';
 }
 
-export function useLiveMetrics(): { data: LiveRecord | null; status: LoadState } {
+export function usePmsLive(): { data: PmsRaw | null; status: LoadState; timestamp: number | null } {
   const { pushAlert } = useAppContext();
-  const [data, setData] = useState<LiveRecord | null>(null);
+  const [data, setData] = useState<PmsRaw | null>(null);
+  const [timestamp, setTimestamp] = useState<number | null>(null);
   const [status, setStatus] = useState<LoadState>('loading');
   const hasReceivedDataRef = useRef(false);
-  const hasAnnouncedSuccessRef = useRef(false);
 
   useEffect(() => {
     setStatus('loading');
@@ -21,28 +22,29 @@ export function useLiveMetrics(): { data: LiveRecord | null; status: LoadState }
     const timeoutId = window.setTimeout(() => {
       if (!hasReceivedDataRef.current) {
         setStatus('empty');
-        pushAlert({ level: 'warn', message: 'Brak danych live z urządzenia.', autoDismiss: true });
       }
     }, 4000);
 
-    const unsubscribe = subscribeLiveMetrics(getDeviceId(), (record) => {
-      hasReceivedDataRef.current = true;
-      setData(record);
-      setStatus('loaded');
-
-      if (!hasAnnouncedSuccessRef.current) {
-        hasAnnouncedSuccessRef.current = true;
-        pushAlert({ level: 'success', message: 'Połączenie z urządzeniem aktywne.', autoDismiss: true });
+    const unsubscribe = subscribePmsLive(getDeviceId(), (record: PmsRecord) => {
+      const raw = pickPmsRaw(record);
+      if (!raw) {
+        return;
       }
+
+      hasReceivedDataRef.current = true;
+      setData(raw);
+      setTimestamp(record.ts);
+      setStatus('loaded');
     }, (error) => {
       hasReceivedDataRef.current = true;
       setData(null);
+      setTimestamp(null);
       setStatus('error');
       pushAlert({
         level: 'error',
-        message: error.message.includes('permission')
+        message: error.message.toLowerCase().includes('permission')
           ? 'Brak dostępu do Firebase — sprawdź reguły bazy.'
-          : 'Błąd odczytu danych live z Firebase.',
+          : 'Błąd odczytu danych PMS z Firebase.',
         autoDismiss: false,
       });
     });
@@ -53,5 +55,5 @@ export function useLiveMetrics(): { data: LiveRecord | null; status: LoadState }
     };
   }, []);
 
-  return { data, status };
+  return { data, status, timestamp };
 }

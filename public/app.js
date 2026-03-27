@@ -67,6 +67,7 @@ const timeState = {
 let latestRef = null;
 let latestHandler = null;
 let healthTimer = null;
+let timeSyncTimer = null;
 let lastTsSec = null;
 let currentLoadToken = 0;
 let motionEnabled = true;
@@ -205,7 +206,7 @@ function clockLoop() {
 
 // bootstrap time sync
 syncTimeFromDevice();
-setInterval(syncTimeFromDevice, TIME_SYNC_INTERVAL);
+timeSyncTimer = setInterval(syncTimeFromDevice, TIME_SYNC_INTERVAL);
 requestAnimationFrame(clockLoop);
 
 function showOverlay(name) {
@@ -916,6 +917,7 @@ $btnRefresh.addEventListener("click", async () => {
 function cleanup() {
   if (latestRef && latestHandler) latestRef.off("value", latestHandler);
   if (healthTimer) clearInterval(healthTimer);
+  if (timeSyncTimer) clearInterval(timeSyncTimer);
 }
 
 window.addEventListener("beforeunload", cleanup);

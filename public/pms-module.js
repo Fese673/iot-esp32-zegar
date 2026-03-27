@@ -53,7 +53,24 @@
   let pmsLoadToken = 0;
   let pmsViewDate = new Date();
   let pmsSelectedDate = new Date();
+  let pmsLiveRef = null;
+  let pmsLiveHandler = null;
   const PMS_INITIAL_WINDOW_MS = Math.max(REALTIME_WINDOW_MS, 10 * 60 * 1000);
+
+  function pmsCleanup() {
+    if (pmsLiveRef && pmsLiveHandler) {
+      pmsLiveRef.off("value", pmsLiveHandler);
+      pmsLiveRef = null;
+      pmsLiveHandler = null;
+    }
+
+    if (pmsChart) {
+      pmsChart.destroy();
+      pmsChart = null;
+    }
+  }
+
+  window.addEventListener("beforeunload", pmsCleanup);
 
   const pmsPointers = new Map();
   let pmsPinchStartDist = null;
@@ -507,8 +524,8 @@
   }
 
   function pmsSubscribeLive() {
-    const ref = db.ref(`devices/${DEVICE_ID}/latest`);
-    ref.on("value", (snap) => {
+    pmsLiveRef = db.ref(`devices/${DEVICE_ID}/latest`);
+    pmsLiveHandler = (snap) => {
       const v = snap.val();
       if (!v) return;
       const calib = v.A || v.F;
@@ -528,7 +545,9 @@
       }
       const ts = Number(v.ts) || null;
       if (ts) pmsAppendRealtime(ts, v);
-    });
+    };
+
+    pmsLiveRef.on("value", pmsLiveHandler);
   }
 
   function setupPmsGestures() {

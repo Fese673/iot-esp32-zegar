@@ -993,8 +993,8 @@ PMS ma własny live feed, własną historię, własny kalendarz, własny wykres,
 ### Warunek zakończenia etapu
 
 W checkliście odznaczone:
-- [ ] PM1/PM2.5/PM10 live ✓
-- [ ] Fallback A → F ✓
+- [x] PM1/PM2.5/PM10 live ✓
+- [x] Fallback A → F ✓
 
 ---
 
@@ -1022,13 +1022,52 @@ Jeśli `useCalendar` jest identyczny dla dashboardu i PMS – jeden hook w `shar
 ### Warunek zakończenia etapu
 
 W checkliście odznaczone:
-- [ ] Historia PMS ✓
-- [ ] Wykres PMS ✓
-- [ ] Kalendarz PMS działa niezależnie ✓
+- [x] Historia PMS ✓
+- [x] Wykres PMS ✓
+- [x] Kalendarz PMS działa niezależnie ✓
 
 ---
 
-## Etap 17: iframe PM embed
+## Etap 17: Checklista końcowa i domknięcie braków
+
+### Cel
+
+Przejść przez wszystkie jeszcze nieodznaczone pozycje checklisty i doprowadzić je do stanu pass bez zmiany uzgodnionej architektury.
+
+### Warunek wejścia
+
+Etap 16 zakończony. Dashboard i PMS są już wdrożone, a na liście zostały tylko pozycje wymagające dopięcia albo potwierdzenia.
+
+### Co agent ma zrobić
+
+Przejść przez każdy jeszcze nieodznaczony punkt `BASELINE_CHECKLIST.md` i dla każdego:
+- zweryfikować, czy zachowanie już istnieje,
+- jeśli nie istnieje, naprawić kod możliwie lokalnie i bez zmiany architektury,
+- potwierdzić rezultat w browserze tam, gdzie to ma sens,
+- odznaczyć pozycję dopiero po realnym potwierdzeniu.
+
+Obejmuje to w szczególności:
+- Motion toggle włącza i wyłącza animacje,
+- Klasa motion-off jest dodawana/usuwana z documentElement,
+- Wygląd strony jest zgodny z baseline wizualnie,
+- Hierarchia sekcji jest zachowana,
+- permission denied w Firebase – obsłużone,
+- Brak odpowiedzi urządzenia dla synchronizacji czasu – obsłużone,
+- PMS bez pola A, tylko F – obsłużone,
+- Mobile gestures na wykresie działają,
+- Wheel zoom na wykresie działa.
+
+### Zasada dotycząca zakresu
+
+Nie ruszać elementów już odznaczonych, nie przebudowywać UI bez potrzeby i nie przechodzić dalej, dopóki checklistę da się zamknąć uczciwie.
+
+### Warunek zakończenia etapu
+
+W `BASELINE_CHECKLIST.md` odznaczone wszystkie pozostające pozycje.
+
+---
+
+## Etap 18: iframe PM embed
 
 ### Cel
 
@@ -1047,9 +1086,13 @@ Agent może rozważyć integrację `iframe` jako normalnego komponentu dopiero g
 
 Dopóki te warunki nie są spełnione, `iframe` pozostaje nienaruszony.
 
+### Status realizacji
+
+W tej wersji embed został zintegrowany jako komponent React w `src/features/pms/components/PmsLivePanel.tsx`, a `iframe` został zastąpiony bez zmiany reszty układu PMS.
+
 ---
 
-## Etap 18: Cleanup subskrypcji i lifecycle
+## Etap 19: Cleanup subskrypcji i lifecycle
 
 ### Cel
 
@@ -1077,9 +1120,13 @@ Każde brakujące cleanup to błąd architektoniczny – nie detal do pominięci
 
 Lista wszystkich miejsc z subskrypcjami + potwierdzenie że każde ma cleanup.
 
+### Status realizacji
+
+Audyt zakończony. W Reactowym runtime wszystkie wskazane subskrypcje, timery, listenery i instancje Chart.js mają cleanup. W legacy static runtime dopięto brakujący cleanup dla synchronizacji czasu oraz PMS live feed i chart teardown.
+
 ---
 
-## Etap 19: Testy regresyjne funkcjonalne
+## Etap 20: Testy regresyjne funkcjonalne
 
 ### Cel
 
@@ -1087,7 +1134,7 @@ Sprawdzić zgodność nowej implementacji ze starą przed deployem.
 
 ### Warunek wejścia
 
-Etap 18 zakończony.
+Etap 19 zakończony.
 
 ### Scenariusze obowiązkowe
 
@@ -1141,7 +1188,7 @@ Wszystkie 10 scenariuszy: pass.
 
 ---
 
-## Etap 20: Deploy staging i porównanie wizualne
+## Etap 21: Deploy staging i porównanie wizualne
 
 ### Cel
 
@@ -1160,7 +1207,7 @@ Ostateczna weryfikacja przed podmienieniem produkcji.
 
 ---
 
-## Etap 21: Refaktor stylistyczny – dopiero na końcu
+## Etap 22: Refaktor stylistyczny – dopiero na końcu
 
 ### Cel
 
@@ -1168,7 +1215,7 @@ Nie mieszać zmian estetycznych z migracją logiki.
 
 ### Warunek wejścia
 
-Etap 20 zakończony. Deploy staging potwierdził zgodność.
+Etap 21 zakończony. Deploy staging potwierdził zgodność.
 
 ### Dopiero po stabilizacji można rozważyć
 

@@ -57,7 +57,11 @@ function snapshotToHistoryRecords(snapshotValue: unknown): HistoryRecord[] {
   return records.sort((left, right) => toEpochMs(left.ts) - toEpochMs(right.ts));
 }
 
-export function subscribeLiveMetrics(deviceId: string, callback: (data: LiveRecord) => void): () => void {
+export function subscribeLiveMetrics(
+  deviceId: string,
+  callback: (data: LiveRecord) => void,
+  onError?: (error: Error) => void,
+): () => void {
   const liveRef = ref(db, `${getDevicePath(deviceId)}/latest`);
 
   const unsubscribe = onValue(liveRef, (snapshot) => {
@@ -65,7 +69,7 @@ export function subscribeLiveMetrics(deviceId: string, callback: (data: LiveReco
     if (record) {
       callback(record);
     }
-  });
+  }, onError);
 
   return () => unsubscribe();
 }

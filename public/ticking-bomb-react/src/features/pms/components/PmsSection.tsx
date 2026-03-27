@@ -1,16 +1,65 @@
+import { useMemo } from 'react';
+import Calendar from '../../../shared/components/Calendar';
+import { useCalendar } from '../../../shared/hooks/useCalendar';
+import { appendUniquePmsChartPoint, rawToPmsChartPoints } from '../lib/pmsChartHelpers';
+import { usePmsHistory } from '../hooks/usePmsHistory';
+import { usePmsLive } from '../hooks/usePmsLive';
+import PmsLivePanel from './PmsLivePanel';
+import PmsChart from './PmsChart';
+
+function formatPmsValue(value: number | null | undefined): string {
+  if (!Number.isFinite(Number(value))) {
+    return '--';
+  }
+
+  return Number(value).toFixed(1);
+}
+
 function PmsSection() {
+  const calendar = useCalendar();
+  const history = usePmsHistory(calendar.state.selectedDate);
+  const pmsLive = usePmsLive();
+  const liveData = pmsLive.status === 'loaded' ? pmsLive.data : null;
+  const liveReady = Boolean(liveData);
+  const pm1Value = liveReady ? formatPmsValue(liveData?.pm1) : '--';
+  const pm25Value = liveReady ? formatPmsValue(liveData?.pm25) : '--';
+  const pm10Value = liveReady ? formatPmsValue(liveData?.pm10) : '--';
+  const liveMeta = pmsLive.status === 'loaded' ? 'LIVE' : pmsLive.status === 'empty' ? 'Brak danych' : 'Czekam na dane';
+  const chartPoints = useMemo(() => {
+    if (history.loadState !== 'loaded') {
+      return history.points;
+    }
+
+    if (calendar.state.selectedDate !== calendar.state.today || !liveData || pmsLive.timestamp == null) {
+      return history.points;
+    }
+
+    return rawToPmsChartPoints(liveData, pmsLive.timestamp).reduce(appendUniquePmsChartPoint, history.points);
+  }, [calendar.state.selectedDate, calendar.state.today, history.loadState, history.points, liveData, pmsLive.timestamp]);
+
+  const densityLabel = history.loadState === 'loaded' || history.loadState === 'empty'
+    ? history.dataDensity === 0
+      ? 'brak próbek'
+      : history.dataDensity < 80
+        ? `${history.dataDensity} próbek · lekki`
+        : history.dataDensity < 200
+          ? `${history.dataDensity} próbek · umiarkowany`
+          : `${history.dataDensity} próbek · gęsty`
+    : '–';
+  const modeInfo = `Wybrany dzień: ${calendar.state.selectedDate}`;
+
   return (
     <section className="panel pms-section" aria-label="Moduł czujnika pyłów PMS5003">
       <header className="panel-head pms-master-head">
         <div>
-          <p className="eyebrow"></p>
-          <h2></h2>
-          <p></p>
+          <p className="eyebrow">PMS5003</p>
+          <h2>Pyły w osobnym widoku</h2>
+          <p>Live feed, archiwum i kalendarz dla pyłów z zachowaniem fallbacku A → F.</p>
         </div>
         <div className="panel-actions">
-          <span className="chip live"><span className="pulse"></span></span>
-          <span className="chip"></span>
-          <span className="chip"></span>
+          <span className="chip live"><span className="pulse"></span> LIVE</span>
+          <span className="chip">A → F</span>
+          <span className="chip">historia</span>
         </div>
       </header>
 
@@ -18,26 +67,17 @@ function PmsSection() {
         <section className="pms-embed-panel" aria-label="Frakcje PM w układzie warstwowym">
           <header className="panel-head pms-subhead">
             <div>
-              <p className="eyebrow"></p>
-              <h3></h3>
-              <p></p>
+              <p className="eyebrow">Widok live</p>
+              <h3>Zintegrowany panel React</h3>
+              <p>Wcześniejszy iframe został przeniesiony do normalnego komponentu, bez odrębnego dokumentu.</p>
             </div>
             <div className="panel-actions">
-              <span className="chip"></span>
-              <span className="chip"></span>
+              <span className="chip">PM1.0</span>
+              <span className="chip">PM2.5</span>
             </div>
           </header>
 
-          <div className="pm-embed-shell">
-            <iframe
-              id="pmEmbed"
-              className="pm-embed"
-              src="/Kreatywna%20sekcja/pm_chart1.html"
-              title="PM Frakcje - warstwowy panel z danych Firebase"
-              scrolling="no"
-              loading="lazy"
-            ></iframe>
-          </div>
+          <PmsLivePanel liveData={liveData} liveStatus={pmsLive.status} liveTimestamp={pmsLive.timestamp} />
         </section>
 
         <section className="pms-inner-panel" aria-label="Historia i trend dla PMS5003">
@@ -45,10 +85,11 @@ function PmsSection() {
             <div>
               <p className="eyebrow">Widok archiwalny</p>
               <h3>Trend dobowy i korelacja z kalendarzem</h3>
+              <p>Wybierz dzień, aby zobaczyć historię PM i dołączyć dzisiejszy live feed, gdy patrzysz na dziś.</p>
             </div>
             <div className="panel-actions">
-              <button className="primary-btn" id="pmsBtnToday">Dziś</button>
-              <button className="ghost-btn" id="pmsBtnClear">Wyczyść</button>
+              <button className="primary-btn" id="pmsBtnToday" type="button" onClick={() => calendar.selectDate(calendar.state.today)}>Dziś</button>
+              <button className="ghost-btn" id="pmsBtnClear" type="button" onClick={() => calendar.selectDate(calendar.state.today)}>Wyczyść</button>
             </div>
           </header>
 
@@ -58,8 +99,8 @@ function PmsSection() {
                 <p className="label">PM 1.0</p>
                 <span className="tag">μg/m³</span>
               </div>
-              <p className="value" id="pm1Value">--</p>
-              <p className="muted" id="pm1Meta">Czekam na dane</p>
+              <p className="value" id="pm1Value">{pm1Value}</p>
+              <p className="muted" id="pm1Meta">{liveMeta}</p>
             </article>
 
             <article className="stat-card pm-card pm25-card">
@@ -67,8 +108,8 @@ function PmsSection() {
                 <p className="label">PM 2.5</p>
                 <span className="tag">μg/m³</span>
               </div>
-              <p className="value" id="pm25Value">--</p>
-              <p className="muted" id="pm25Meta">Czekam na dane</p>
+              <p className="value" id="pm25Value">{pm25Value}</p>
+              <p className="muted" id="pm25Meta">{liveMeta}</p>
             </article>
 
             <article className="stat-card pm-card pm10-card">
@@ -76,50 +117,31 @@ function PmsSection() {
                 <p className="label">PM 10.0</p>
                 <span className="tag">μg/m³</span>
               </div>
-              <p className="value" id="pm10Value">--</p>
-              <p className="muted" id="pm10Meta">Czekam na dane</p>
+              <p className="value" id="pm10Value">{pm10Value}</p>
+              <p className="muted" id="pm10Meta">{liveMeta}</p>
             </article>
           </section>
 
           <div className="panel-body split">
             <div className="chart-stack">
-              <div className="chart-head">
+              <header className="chart-head">
                 <div>
-                  <p className="muted" id="pmsModeInfo">Wybierz dzień w kalendarzu</p>
+                  <p className="muted" id="pmsModeInfo">{modeInfo}</p>
                   <p className="chart-hint">Ctrl ⌃ + scroll / pinch aby przybliżyć. Przesuń gdy jesteś nad wykresem.</p>
                 </div>
-                <span className="chip" id="pmsDataDensity">–</span>
-              </div>
-              <div className="chart-frame" id="pmsChartFrame">
-                <canvas id="pmsChart" aria-label="Wykres historii pyłów PM" role="img"></canvas>
-                <div className="chart-overlay" id="pmsChartLoading">Ładowanie danych…</div>
-                <div className="chart-overlay" id="pmsChartNote">Wybierz dzień, aby wczytać dane z bazy.</div>
-                <div className="chart-overlay error" id="pmsChartError">Brak danych dla tego dnia.</div>
-                <div className="chart-controls" aria-hidden="true">
-                  <button type="button" className="chart-control" data-pms-pan="-1" aria-label="Przesuń wykres w lewo">‹</button>
-                  <button type="button" className="chart-control" data-pms-pan="1" aria-label="Przesuń wykres w prawo">›</button>
-                </div>
-              </div>
+                <span className="chip" id="pmsDataDensity">{densityLabel}</span>
+              </header>
+              <PmsChart points={chartPoints} loadState={history.loadState} selectedDate={calendar.state.selectedDate} />
             </div>
 
-            <aside className="calendar" aria-label="Kalendarz wyboru dnia — pyły">
-              <div className="cal-head">
-                <button className="cal-btn" id="pmsCalPrev" title="Poprzedni miesiąc" aria-label="Poprzedni miesiąc">◀</button>
-                <div>
-                  <p className="eyebrow">Dzień</p>
-                  <h3 className="cal-title" id="pmsCalTitle">—</h3>
-                </div>
-                <button className="cal-btn" id="pmsCalNext" title="Następny miesiąc" aria-label="Następny miesiąc">▶</button>
-              </div>
-              <div className="cal-weekdays">
-                <span>Pn</span><span>Wt</span><span>Śr</span><span>Cz</span><span>Pt</span><span>Sb</span><span>Nd</span>
-              </div>
-              <div className="cal-grid" id="pmsCalGrid"></div>
-              <div className="cal-legend">
-                <span className="legend-dot today"></span> dziś
-                <span className="legend-dot selected"></span> wybrany
-              </div>
-            </aside>
+            <Calendar
+              idPrefix="pmsCal"
+              ariaLabel="Kalendarz wyboru dnia — pyły"
+              state={calendar.state}
+              onSelectDate={calendar.selectDate}
+              onNextMonth={calendar.nextMonth}
+              onPrevMonth={calendar.prevMonth}
+            />
           </div>
         </section>
       </div>

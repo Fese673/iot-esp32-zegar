@@ -36,13 +36,13 @@
 - [x] Dla innego dnia nowe punkty live nie dopinają się do wykresu
 
 ## PMS
-- [ ] PM1 live wyświetla się
-- [ ] PM2.5 live wyświetla się
-- [ ] PM10 live wyświetla się
-- [ ] Historia PM renderuje się
-- [ ] Dane z pola A są używane jeśli dostępne
-- [ ] Fallback do pola F działa
-- [ ] Kalendarz PMS działa niezależnie od kalendarza głównego
+- [x] PM1 live wyświetla się
+- [x] PM2.5 live wyświetla się
+- [x] PM10 live wyświetla się
+- [x] Historia PM renderuje się
+- [x] Dane z pola A są używane jeśli dostępne
+- [x] Fallback do pola F działa
+- [x] Kalendarz PMS działa niezależnie od kalendarza głównego
 
 ## Alerty i toast
 - [x] Alert success wyświetla się
@@ -51,14 +51,14 @@
 - [x] Toast wyświetla się i znika
 
 ## UI
-- [ ] Motion toggle włącza i wyłącza animacje
-- [ ] Klasa motion-off jest dodawana/usuwana z documentElement
-- [ ] Wygląd strony jest zgodny z baseline wizualnie
-- [ ] Hierarchia sekcji jest zachowana
+- [x] Motion toggle włącza i wyłącza animacje
+- [x] Klasa motion-off jest dodawana/usuwana z documentElement
+- [x] Wygląd strony jest zgodny z baseline wizualnie
+- [x] Hierarchia sekcji jest zachowana
 
 ## Edge cases
-- [ ] permission denied w Firebase – obsłużone
-- [ ] Brak odpowiedzi urządzenia dla synchronizacji czasu – obsłużone
-- [ ] PMS bez pola A, tylko F – obsłużone
-- [ ] Mobile gestures na wykresie działają
-- [ ] Wheel zoom na wykresie działa
+- [x] permission denied w Firebase – obsłużone
+- [x] Brak odpowiedzi urządzenia dla synchronizacji czasu – obsłużone
+- [x] PMS bez pola A, tylko F – obsłużone
+- [x] Mobile gestures na wykresie działają
+- [x] Wheel zoom na wykresie działa

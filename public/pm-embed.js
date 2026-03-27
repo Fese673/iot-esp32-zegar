@@ -2,6 +2,9 @@
   const iframe = document.getElementById("pmEmbed");
   if (!iframe) return;
 
+  const timeoutIds = [];
+  let embeddedWindow = null;
+
   const resize = () => {
     try {
       const doc = iframe.contentDocument || iframe.contentWindow?.document;
@@ -18,18 +21,39 @@
     }
   };
 
-  iframe.addEventListener("load", () => {
+  const scheduleResize = (delay) => {
+    timeoutIds.push(window.setTimeout(resize, delay));
+  };
+
+  const handleLoad = () => {
     resize();
     try {
-      const win = iframe.contentWindow;
-      win?.addEventListener("resize", resize);
+      embeddedWindow = iframe.contentWindow || null;
+      embeddedWindow?.addEventListener("resize", resize);
     } catch (error) {
       // ignore
     }
-    window.setTimeout(resize, 150);
-    window.setTimeout(resize, 600);
-  });
+    scheduleResize(150);
+    scheduleResize(600);
+  };
 
+  const cleanup = () => {
+    iframe.removeEventListener("load", handleLoad);
+    window.removeEventListener("resize", resize);
+
+    try {
+      embeddedWindow?.removeEventListener("resize", resize);
+    } catch (error) {
+      // ignore
+    }
+
+    embeddedWindow = null;
+    timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    timeoutIds.splice(0);
+  };
+
+  iframe.addEventListener("load", handleLoad);
   window.addEventListener("resize", resize);
-  window.setTimeout(resize, 1000);
+  window.addEventListener("beforeunload", cleanup);
+  scheduleResize(1000);
 })();
