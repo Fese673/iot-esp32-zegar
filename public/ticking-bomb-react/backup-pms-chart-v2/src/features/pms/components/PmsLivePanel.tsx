@@ -1,11 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { get, limitToLast, query, ref } from 'firebase/database';
-import { getFirebaseDb } from '../../../shared/lib/firebaseClient';
-import { useAppContext } from '../../../App';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePmsLive } from '../hooks/usePmsLive';
 import {
   buildParticleRows,
-  computeParticleHistoryPeak,
   formatParticleCount,
   getParticleStatusLabel,
   getParticleTrendLabel,
@@ -13,27 +9,15 @@ import {
   rowDescription,
   rowTitle,
   severityLabel,
-  type PmsParticleHistoryPeak,
   type PmsParticleRow,
 } from '../lib/pmsLiveHelpers';
 
 export default function PmsLivePanel() {
   const { data: liveRecord, status: liveStatus, timestamp: liveTimestamp } = usePmsLive();
-  const { pushAlert } = useAppContext();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const previousRowsRef = useRef<PmsParticleRow[] | null>(null);
-  const [historyPeak, setHistoryPeak] = useState<PmsParticleHistoryPeak>({
-    '0p3': 0,
-    '0p5': 0,
-    '1p0': 0,
-    '2p5': 0,
-    '5p0': 0,
-    '10p0': 0,
-  });
-  const [historySource, setHistorySource] = useState('bez historii');
-
-  const rows = useMemo(() => buildParticleRows(liveRecord, historyPeak), [liveRecord, historyPeak]);
+  const rows = useMemo(() => buildParticleRows(liveRecord), [liveRecord]);
   const dominantRow = rows.reduce((best, row) => (row.value > best.value ? row : best), rows[0]);
   const averageFill = rows.reduce((sum, row) => sum + row.fill, 0) / rows.length;
   const selectedRow = rows[selectedIndex] ?? dominantRow;
@@ -47,44 +31,6 @@ export default function PmsLivePanel() {
   useEffect(() => {
     previousRowsRef.current = rows;
   }, [rows]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadHistoryPeaks() {
-      const deviceId = window.__DEVICE_ID__ || localStorage.getItem('firebaseDeviceId') || 'device1';
-      try {
-        const historyRef = ref(getFirebaseDb(), `devices/${deviceId}/history`);
-        const snapshot = await get(query(historyRef, limitToLast(250)));
-        if (cancelled) return;
-
-        const value = snapshot.val();
-        if (!value || typeof value !== 'object') {
-          setHistorySource('bez historii');
-          return;
-        }
-
-        const records = Object.values(value as Record<string, unknown>).filter((item): item is Record<string, unknown> => item !== null && typeof item === 'object');
-        const peak = computeParticleHistoryPeak(records);
-
-        setHistoryPeak(peak);
-        setHistorySource(`${records.length} rekordów historii`);
-      } catch (error) {
-        setHistorySource('historia niedostępna');
-        pushAlert({
-          level: 'warn',
-          message: 'Nie udało się pobrać historii cząstek PMS5003.',
-          autoDismiss: true,
-        });
-      }
-    }
-
-    loadHistoryPeaks();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [pushAlert]);
 
   return (
     <section className="pm-live-panel" aria-label="Wykres 1 PMS5003 - licznik cząstek i interpretacja frakcji">
@@ -135,15 +81,10 @@ export default function PmsLivePanel() {
               <h4>Surowe cząstki z PMS5003</h4>
               <p>Każda kolumna pokazuje bieżący udział binu w próbce. PM2.5 i PM10 są tu tylko etykietą orientacyjną.</p>
             </div>
-            <div className="chip-row compact">
-              <span className="chip live"><span className="pulse"></span> RTDB: aktywne</span>
-              <button type="button" className="chip chip-action" onClick={() => setDetailsOpen(true)}>Jak czytać</button>
-            </div>
+            <button type="button" className="chip chip-action" onClick={() => setDetailsOpen(true)}>Jak czytać</button>
           </header>
 
           <div className="pm-live-chart-shell">
-            <div className="data-glow" aria-hidden="true"></div>
-            <div className="chart-grid" aria-hidden="true"></div>
             <div className="pm-live-y-axis" aria-hidden="true">
               <span>100%</span>
               <span>75%</span>
@@ -176,7 +117,6 @@ export default function PmsLivePanel() {
                   <span className="pm-live-axis-label">
                     <strong>{row.fraction}</strong>
                     <span>{row.title}</span>
-                    <span className="pm-live-axis-sub">peak {formatParticleCount(row.peak)}</span>
                   </span>
                 </button>
               ))}
@@ -185,89 +125,40 @@ export default function PmsLivePanel() {
 
           <footer className="pm-live-chart-footer">
             <span>Źródło: devices/device1/latest</span>
-            <span>Historia: {historySource}</span>
             <span>Interpretacja: licznik cząstek, nie stężenie masowe</span>
             <span>Tryb: {statusLabel}</span>
           </footer>
           <p className="pm-live-story" dangerouslySetInnerHTML={{ __html: story }} />
+
+          <div className="pm-live-info" aria-label="Jak czytać ten wykres">
+            <article className="pm-live-info-block">
+              <p className="eyebrow">Krok 1</p>
+              <p className="story-copy">PMS5003 zlicza cząstki w kolejnych binach wielkości. To pokazuje strukturę aerozolu, a nie klasyczne stężenie masowe PM.</p>
+              <div className="story-tags">
+                <span className="story-tag"><span className="dot"></span>sensor PMS5003</span>
+                <span className="story-tag"><span className="dot"></span>licznik cząstek</span>
+              </div>
+            </article>
+
+            <article className="pm-live-info-block">
+              <p className="eyebrow">Krok 2</p>
+              <p className="story-copy">Słupki są normalizowane do najmocniejszego binu w bieżącej próbce, żeby łatwiej zobaczyć relację między frakcjami.</p>
+              <div className="story-tags">
+                <span className="story-tag warn"><span className="dot"></span>Wykres 1</span>
+                <span className="story-tag"><span className="dot"></span>skala względna</span>
+              </div>
+            </article>
+
+            <article className="pm-live-info-block">
+              <p className="eyebrow">Krok 3</p>
+              <p className="story-copy">PM2.5 i PM10 są tu wskazówką interpretacyjną. W praktyce panel nadal opisuje cząstki z sensora, nie laboratoryjny pomiar masowy.</p>
+              <div className="story-tags">
+                <span className="story-tag alert"><span className="dot"></span>PM jako orientacja</span>
+                <span className="story-tag"><span className="dot"></span>bez iframe</span>
+              </div>
+            </article>
+          </div>
         </section>
-
-        <aside className="pm-live-aside" aria-label="Panel wyjaśniający wykres cząstek">
-          <section className="pm-live-info-block pm-live-info-block--story">
-            <p className="eyebrow">Krótka historia cząstek</p>
-            <p className="story-copy" dangerouslySetInnerHTML={{ __html: story }} />
-            <div className="story-tags">
-              <span className={`story-tag ${dominantRow.severity}`}><span className="dot"></span>{dominantRow.fraction}</span>
-              <span className={`story-tag ${dominantRow.severity}`}><span className="dot"></span>{guideFor(dominantRow.fraction).title}</span>
-              <span className="story-tag"><span className="dot"></span>{trendLabel}</span>
-            </div>
-          </section>
-
-          <section className="pm-live-info-block">
-            <p className="eyebrow">Krok 2</p>
-            <p className="story-copy">Słupki są normalizowane do najmocniejszego binu w bieżącej próbce, żeby łatwiej zobaczyć relację między frakcjami.</p>
-            <div className="story-tags">
-              <span className="story-tag warn"><span className="dot"></span>Wykres 1</span>
-              <span className="story-tag"><span className="dot"></span>skala względna</span>
-            </div>
-          </section>
-
-          <section className="pm-live-info-block">
-            <p className="eyebrow">Krok 3</p>
-            <p className="story-copy">PM2.5 i PM10 są tu wskazówką interpretacyjną. W praktyce panel nadal opisuje cząstki z sensora, nie laboratoryjny pomiar masowy.</p>
-            <div className="story-tags">
-              <span className="story-tag alert"><span className="dot"></span>PM jako orientacja</span>
-              <span className="story-tag"><span className="dot"></span>bez iframe</span>
-            </div>
-          </section>
-
-          <section className="pm-live-info-block">
-            <p className="eyebrow">Mapa kolorów</p>
-            <div className="thresholds">
-              <div className="threshold-row good">
-                <span className="dot"></span>
-                <strong>Norma</strong>
-                <span>0-49%</span>
-              </div>
-              <div className="threshold-row warn">
-                <span className="dot"></span>
-                <strong>Uwaga</strong>
-                <span>50-69%</span>
-              </div>
-              <div className="threshold-row alert">
-                <span className="dot"></span>
-                <strong>Alarm</strong>
-                <span>70-100%</span>
-              </div>
-            </div>
-          </section>
-
-          <section className="pm-live-info-block">
-            <p className="eyebrow">Aktualny puls</p>
-            <div className="activity-meter">
-              <div className="activity-caption">
-                <span>intensywność sygnału</span>
-                <span id="activityLabel">średnia</span>
-              </div>
-              <div className="activity-bars" id="activityBars" aria-hidden="true">
-                <span style={{ '--h': '.28' } as CSSProperties}></span>
-                <span style={{ '--h': '.42' } as CSSProperties}></span>
-                <span style={{ '--h': '.64' } as CSSProperties}></span>
-                <span style={{ '--h': '.78' } as CSSProperties}></span>
-                <span style={{ '--h': '.58' } as CSSProperties}></span>
-                <span style={{ '--h': '.36' } as CSSProperties}></span>
-                <span style={{ '--h': '.5' } as CSSProperties}></span>
-                <span style={{ '--h': '.72' } as CSSProperties}></span>
-              </div>
-            </div>
-          </section>
-
-          <section className="pm-live-info-block footnote-block">
-            <p className="footnote">
-              To jest osobny komponent, ale działa na tych samych danych co dashboard. Nie używa symulacji i ma czytelny fallback, gdyby historyczne maksimum nie było jeszcze dostępne.
-            </p>
-          </section>
-        </aside>
       </div>
 
       {detailsOpen ? (

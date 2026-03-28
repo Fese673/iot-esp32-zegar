@@ -1,572 +1,908 @@
-(function initPmChartLive() {
-  const barsRow = document.getElementById("barsRow");
-  if (!barsRow) return;
+(function initParticleCompositionView() {
+  "use strict";
 
-  const xAxis = document.getElementById("xAxis");
-  const tt = document.getElementById("tt");
-  const detailsBtn = document.getElementById("detailsBtn");
-  const detailsBackdrop = document.getElementById("detailsBackdrop");
-  const detailsDrawer = document.getElementById("detailsDrawer");
-  const drawerClose = document.getElementById("drawerClose");
-  const drawerTitle = document.getElementById("drawerTitle");
-  const drawerWhat = document.getElementById("drawerWhat");
-  const drawerSource = document.getElementById("drawerSource");
-  const drawerWhy = document.getElementById("drawerWhy");
-  const drawerExamples = document.getElementById("drawerExamples");
-  const drawerFoot = document.getElementById("drawerFoot");
-  const particleStoryText = document.getElementById("particleStoryText");
-  const particleStoryTags = document.getElementById("particleStoryTags");
-  const heroMaxValue = document.getElementById("heroMaxValue");
-  const heroMaxMeta = document.getElementById("heroMaxMeta");
-  const heroAvgValue = document.getElementById("heroAvgValue");
-  const heroDominantValue = document.getElementById("heroDominantValue");
-  const heroTrendValue = document.getElementById("heroTrendValue");
-  const simStatus = document.getElementById("simStatus");
-  const activityLabel = document.getElementById("activityLabel");
-  const activityBars = Array.from(document.querySelectorAll("#activityBars span"));
+  const dom = {
+    barsRow: document.getElementById("barsRow"),
+    xAxis: document.getElementById("xAxis"),
+    tooltip: document.getElementById("tt"),
+    detailsBtn: document.getElementById("detailsBtn"),
+    detailsBackdrop: document.getElementById("detailsBackdrop"),
+    detailsDrawer: document.getElementById("detailsDrawer"),
+    drawerClose: document.getElementById("drawerClose"),
+    drawerTitle: document.getElementById("drawerTitle"),
+    drawerWhat: document.getElementById("drawerWhat"),
+    drawerSource: document.getElementById("drawerSource"),
+    drawerWhy: document.getElementById("drawerWhy"),
+    drawerExamples: document.getElementById("drawerExamples"),
+    drawerFoot: document.getElementById("drawerFoot"),
+    particleStoryText: document.getElementById("particleStoryText"),
+    particleStoryTags: document.getElementById("particleStoryTags"),
+    heroMaxValue: document.getElementById("heroMaxValue"),
+    heroMaxMeta: document.getElementById("heroMaxMeta"),
+    heroAvgValue: document.getElementById("heroAvgValue"),
+    heroDominantValue: document.getElementById("heroDominantValue"),
+    heroTrendValue: document.getElementById("heroTrendValue"),
+    simStatus: document.getElementById("simStatus"),
+    activityLabel: document.getElementById("activityLabel"),
+    activityBars: Array.from(document.querySelectorAll("#activityBars span"))
+  };
+
+  if (!dom.barsRow || !dom.xAxis) {
+    return;
+  }
 
   const FRACTIONS = [
     {
       key: "0p3",
-      fraction: "0.3 μm",
-      title: "Ultradrobne cząsteczki",
-      colorClass: "alert"
+      label: "0.3 µm",
+      title: "Ultradrobne czastki",
+      interpretation: "wskazuje na spalanie lub dym",
+      what: "Najmniejsza frakcja wykrywana przez PMS5003. Reaguje szybko na spaliny i dym.",
+      sources: "Spaliny, dym, aerozole termiczne, intensywne procesy spalania.",
+      health: "Moze docierac najglebiej do ukladu oddechowego i utrzymywac sie dlugo w powietrzu.",
+      examples: "spaliny, dym papierosowy, aerozol z kuchni"
     },
     {
       key: "0p5",
-      fraction: "0.5 μm",
-      title: "Drobne aerozole",
-      colorClass: "warn"
+      label: "0.5 µm",
+      title: "Drobny aerozol",
+      interpretation: "czesto oznacza aerozol lub drobna sadze",
+      what: "Frakcja drobnego aerozolu, utrzymujaca sie dlugo w pomieszczeniu.",
+      sources: "Rozpylacze, kondensacja pary, spalanie, e-papierosy.",
+      health: "Zwiazek z podraznieniami drog oddechowych i dlugim czasem ekspozycji.",
+      examples: "spray, mgla olejowa, odswiezacz"
     },
     {
       key: "1p0",
-      fraction: "1.0 μm",
-      title: "Pył średni (PM1.0)",
-      colorClass: "warn"
+      label: "1.0 µm",
+      title: "Pyl sredni",
+      interpretation: "sugeruje aktywne zrodlo zanieczyszczen spaleniowych",
+      what: "Frakcja przejsciowa miedzy ultradrobna i PM2.5, dobra do oceny trendu smogu.",
+      sources: "Spalanie paliw, emisje przemyslowe, kondensacja gazow.",
+      health: "Wazna przy ocenie przewleklej ekspozycji i obciazenia ukladu oddechowego.",
+      examples: "smog fotochemiczny, sadza, opary"
     },
     {
       key: "2p5",
-      fraction: "2.5 μm",
-      title: "Pył zawieszony (PM2.5)",
-      colorClass: "good"
+      label: "2.5 µm",
+      title: "Pyl zawieszony PM2.5",
+      interpretation: "moze sygnalizowac typowe pogorszenie jakosci powietrza",
+      what: "Kluczowa frakcja smogowa i standardowy wskaznik jakosci powietrza.",
+      sources: "Niska emisja, spalanie domowe, ruch drogowy, przemysl.",
+      health: "Dlugotrwale podwyzszenie zwykle oznacza wieksze ryzyko zdrowotne.",
+      examples: "smog zimowy, dym kominowy"
     },
     {
       key: "5p0",
-      fraction: "5.0 μm",
-      title: "Pył gruby / Bioaerozole",
-      colorClass: "good"
+      label: "5.0 µm",
+      title: "Pyl grubszy / bioaerozol",
+      interpretation: "czesto wskazuje na kurz i alergeny",
+      what: "Frakcja czastek grubszych, szybko osiadajaca na powierzchniach.",
+      sources: "Ruch w pomieszczeniu, wzburzony kurz, pylenie roslin, zwierzeta.",
+      health: "Wazna dla alergikow i osob wrazliwych na pylki oraz roztocza.",
+      examples: "kurz domowy, pylki, naskorek"
     },
     {
       key: "10p0",
-      fraction: "10 μm",
-      title: "Pył gruby (PM10)",
-      colorClass: "good"
+      label: "10 µm",
+      title: "Pyl gruby PM10",
+      interpretation: "najczesciej oznacza pylenie mechaniczne i osad",
+      what: "Najgrubsza frakcja z puli PMS5003, zwykle zwiazana z kurzem mechanicznym.",
+      sources: "Ruch drogowy, budowy, wzbijanie osadu, wiatr.",
+      health: "Podraza gorne drogi oddechowe i moze nasilac kaszel.",
+      examples: "pyl drogowy, budowa, piasek"
     }
   ];
 
-  const GUIDE = {
-    "0.3 μm": {
-      title: "Ultradrobne cząsteczki",
-      what: "Ultradrobna frakcja pyłu i aerozoli, najłatwiej przenikająca głęboko do układu oddechowego.",
-      source: "Spaliny, dym, intensywne spalanie oraz bardzo drobne aerozole technologiczne.",
-      why: "To frakcja szczególnie istotna zdrowotnie, bo najłatwiej wchodzi do dolnych dróg oddechowych.",
-      examples: "spaliny diesla, dym papierosowy, smog fotochemiczny, aerozole z kuchni",
-      story: "Najbardziej czuła frakcja. Gdy rośnie szybciej niż pozostałe, zwykle wskazuje na dym, spaliny albo ultradrobny aerozol."
-    },
-    "0.5 μm": {
-      title: "Drobne aerozole",
-      what: "Drobne aerozole i cząstki pośrednie, długo utrzymujące się w powietrzu.",
-      source: "Kondensacja pary, spalanie oraz domowe aerozole w sprayu.",
-      why: "Dobrze pokazuje, czy w pomieszczeniu pojawił się aerozol, odświeżacz lub bardzo drobna sadza.",
-      examples: "odświeżacz, spray, e-papieros, mgła olejowa",
-      story: "To frakcja często związana z aktywnością w pomieszczeniu. Daje czytelny sygnał o aerozolach i sadzy."
-    },
-    "1.0 μm": {
-      title: "Pył średni (PM1.0)",
-      what: "Frakcja pośrednia, ważna do oceny składu chemicznego smogu.",
-      source: "Procesy spalania, kondensacja gazów i emisje przemysłowe.",
-      why: "Pokazuje intensywność źródeł spalania i ładunku zanieczyszczeń.",
-      examples: "smog fotochemiczny, opary chemiczne, sadza",
-      story: "Wzrost tej frakcji zwykle oznacza intensywne spalanie albo aerozol o wysokim ładunku zanieczyszczeń."
-    },
-    "2.5 μm": {
-      title: "Pył zawieszony (PM2.5)",
-      what: "Główny składnik smogu, ważny standard jakości powietrza.",
-      source: "Niska emisja, piece, kotłownie, starsze silniki Diesla.",
-      why: "To kluczowy wskaźnik pogorszenia jakości powietrza.",
-      examples: "zimowy smog, dym z komina, pył przemysłowy",
-      story: "Jeśli ta kolumna rośnie, zwykle sygnalizuje realne pogorszenie jakości powietrza w otoczeniu."
-    },
-    "5.0 μm": {
-      title: "Pył gruby / Bioaerozole",
-      what: "Frakcja mechaniczna i bioaerozolowa, szybko osiadająca jako kurz.",
-      source: "Ruch w pomieszczeniu, rośliny, zwierzęta domowe i pylenie osadów.",
-      why: "Wskazuje na kurz, alergeny i wzburzone osady.",
-      examples: "roztocza, pyłki, naskórek, kurz z dywanu",
-      story: "Rosnąca wartość często idzie w parze z alergiami albo poruszeniem osadu w pomieszczeniu."
-    },
-    "10 μm": {
-      title: "Pył gruby (PM10)",
-      what: "Najgrubsza frakcja, widoczna już jako pył i osad.",
-      source: "Ruch drogowy, budowy, ścieranie mechaniczne, wiatr.",
-      why: "Wiele mówi o kurzu i wzburzonym osadzie, mniej o ultradrobnych emisjach.",
-      examples: "pył drogowy, budowa, piasek, popiół",
-      story: "Ta frakcja pokazuje głównie kurz mechaniczny. Gdy dominuje, źródło zwykle jest lokalne i widoczne."
-    }
+  const THRESHOLDS = {
+    warnFrom: 50,
+    alertFrom: 75
   };
+
+  const MAX_HISTORY_FETCH = 360;
+  const MAX_SLIDING_SAMPLES = 160;
 
   const firebaseConfig = window.__FIREBASE_CONFIG__ || {};
-  const hasFirebase = Boolean(window.firebase && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.databaseURL);
-  const DEVICE_ID = window.__DEVICE_ID__ || localStorage.getItem("firebaseDeviceId") || "device1";
-  const LIVE_PATH = `devices/${DEVICE_ID}/latest`;
-  const HISTORY_PATH = `devices/${DEVICE_ID}/history`;
+  const deviceId = window.__DEVICE_ID__ || localStorage.getItem("firebaseDeviceId") || "device1";
+  const LIVE_PATH = `devices/${deviceId}/latest`;
+  const HISTORY_PATH = `devices/${deviceId}/history`;
 
-  const state = {
-    rows: FRACTIONS.map((item) => ({
-      ...item,
-      value: null,
-      fill: 0,
-      peak: 0,
-      severity: "good"
-    })),
-    columnRefs: [],
-    latestRecord: null,
-    previousRecord: null,
-    selectedIndex: 0,
-    historyPeak: new Map(FRACTIONS.map((item) => [item.key, 0])),
-    historySource: "bez historii",
-    lastError: ""
+  const hasFirebaseRuntime = Boolean(
+    window.firebase &&
+    firebaseConfig &&
+    firebaseConfig.apiKey &&
+    firebaseConfig.projectId &&
+    firebaseConfig.databaseURL
+  );
+
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+  const DataProcessing = {
+    toFiniteNumber(value) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    },
+
+    sanitizeCount(value) {
+      const numeric = this.toFiniteNumber(value);
+      if (numeric == null) return null;
+      return numeric < 0 ? 0 : numeric;
+    },
+
+    formatCount(value) {
+      if (!Number.isFinite(value)) return "—";
+      const abs = Math.abs(value);
+      if (abs >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
+      if (abs >= 1e3) return `${(value / 1e3).toFixed(abs >= 1e4 ? 0 : 1)}k`;
+      return `${Math.round(value)}`;
+    },
+
+    formatPercent(value) {
+      if (!Number.isFinite(value)) return "—";
+      return `${Math.round(value)}%`;
+    },
+
+    extractParticlePayload(record) {
+      if (!record || typeof record !== "object") return null;
+      return record.particles || record.P || record.A || record.F || null;
+    },
+
+    normalizeParticles(record) {
+      const payload = this.extractParticlePayload(record);
+      return FRACTIONS.reduce((acc, item) => {
+        acc[item.key] = this.sanitizeCount(payload && payload[item.key]);
+        return acc;
+      }, {});
+    },
+
+    resolveTimestampMs(record, fallbackMs) {
+      const candidates = [
+        record && record.ts,
+        record && record.device_ts,
+        record && record.timestamp,
+        record && record.time,
+        fallbackMs
+      ];
+
+      for (const candidate of candidates) {
+        const numeric = this.toFiniteNumber(candidate);
+        if (numeric == null) continue;
+        const ms = numeric > 1e12 ? numeric : numeric * 1000;
+        if (Number.isFinite(ms)) return ms;
+      }
+
+      return fallbackMs;
+    },
+
+    sortHistoryRecords(rawHistory) {
+      const output = [];
+      for (const [key, value] of Object.entries(rawHistory || {})) {
+        if (!value) continue;
+        const ts = this.resolveTimestampMs(value, this.toFiniteNumber(key) || Date.now());
+        if (!Number.isFinite(ts)) continue;
+        output.push({ key, value, ts });
+      }
+      output.sort((a, b) => a.ts - b.ts);
+      return output;
+    },
+
+    severityForFill(fill) {
+      if (fill >= THRESHOLDS.alertFrom) return "alert";
+      if (fill >= THRESHOLDS.warnFrom) return "warn";
+      return "good";
+    },
+
+    severityLabel(fill) {
+      const severity = this.severityForFill(fill);
+      if (severity === "alert") return "ALERT";
+      if (severity === "warn") return "WARN";
+      return "GOOD";
+    },
+
+    findDominant(rows) {
+      if (!rows || !rows.length) return null;
+      let best = rows[0];
+      for (let index = 1; index < rows.length; index += 1) {
+        if ((rows[index].valueSafe || 0) > (best.valueSafe || 0)) {
+          best = rows[index];
+        }
+      }
+      return best;
+    },
+
+    computeTrend(previousSample, rows, dominant, averageFill) {
+      if (!previousSample || !previousSample.rows || !previousSample.rows.length || !dominant) {
+        return {
+          direction: "flat",
+          label: "stabilnie",
+          deltaPct: 0,
+          avgDelta: 0,
+          dominantShift: false,
+          previousDominantKey: null
+        };
+      }
+
+      const previousRows = previousSample.rows;
+      const previousMatch = previousRows.find((row) => row.key === dominant.key);
+      const previousDominantKey = previousSample.dominant ? previousSample.dominant.key : null;
+
+      const previousValue = previousMatch ? previousMatch.valueSafe || 0 : 0;
+      const currentValue = dominant.valueSafe || 0;
+      const delta = currentValue - previousValue;
+      const deltaPct = Math.round((delta / Math.max(previousValue, 1)) * 100);
+
+      const previousAverage = Number.isFinite(previousSample.averageFill) ? previousSample.averageFill : 0;
+      const avgDelta = averageFill - previousAverage;
+      const dominantShift = Boolean(previousDominantKey && previousDominantKey !== dominant.key);
+
+      if (Math.abs(deltaPct) < 4 && Math.abs(avgDelta) < 3) {
+        return {
+          direction: "flat",
+          label: "stabilnie",
+          deltaPct,
+          avgDelta,
+          dominantShift,
+          previousDominantKey
+        };
+      }
+
+      const magnitude = Math.max(Math.abs(deltaPct), Math.round(Math.abs(avgDelta)));
+      if (delta > 0 || avgDelta > 0) {
+        return {
+          direction: "up",
+          label: `wzrost ${magnitude}%`,
+          deltaPct,
+          avgDelta,
+          dominantShift,
+          previousDominantKey
+        };
+      }
+
+      return {
+        direction: "down",
+        label: `spadek ${magnitude}%`,
+        deltaPct,
+        avgDelta,
+        dominantShift,
+        previousDominantKey
+      };
+    },
+
+    buildSample(record, sourceLabel, previousSample, historyPeakMap) {
+      const normalized = this.normalizeParticles(record);
+      const hasAnyValue = FRACTIONS.some((item) => normalized[item.key] != null);
+
+      const numericValues = FRACTIONS.map((item) => Math.max(0, normalized[item.key] || 0));
+      const samplePeak = hasAnyValue ? Math.max(...numericValues, 0) : 0;
+      const safePeak = samplePeak > 0 ? samplePeak : 1;
+
+      const rows = FRACTIONS.map((item, index) => {
+        const value = normalized[item.key];
+        const valueSafe = numericValues[index];
+        const fill = value == null || samplePeak <= 0
+          ? 0
+          : clamp((valueSafe / safePeak) * 100, 0, 100);
+
+        const peakHistory = Math.max(historyPeakMap.get(item.key) || 0, valueSafe);
+
+        return {
+          ...item,
+          value,
+          valueSafe,
+          fill,
+          peakHistory,
+          severity: this.severityForFill(fill)
+        };
+      });
+
+      const dominant = this.findDominant(rows);
+      const averageFill = rows.reduce((sum, row) => sum + row.fill, 0) / rows.length;
+      const trend = this.computeTrend(previousSample, rows, dominant, averageFill);
+
+      return {
+        sourceLabel,
+        timestampMs: this.resolveTimestampMs(record, Date.now()),
+        hasAnyValue,
+        samplePeak,
+        rows,
+        dominant,
+        averageFill,
+        trend,
+        totalCount: rows.reduce((sum, row) => sum + row.valueSafe, 0),
+        raw: record
+      };
+    }
   };
 
-  function textOrDash(value) {
-    return value == null ? "—" : String(value);
-  }
-
-  function toNumber(value) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  function formatCount(value) {
-    if (!Number.isFinite(value)) return "—";
-    const abs = Math.abs(value);
-    if (abs >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
-    if (abs >= 1e3) return `${(value / 1e3).toFixed(abs >= 1e4 ? 0 : 1)}k`;
-    return `${Math.round(value)}`;
-  }
-
-  function severityFor(fillPct) {
-    if (fillPct >= 78) return "alert";
-    if (fillPct >= 52) return "warn";
-    return "good";
-  }
-
-  function severityLabel(fillPct) {
-    if (fillPct >= 78) return "alarm";
-    if (fillPct >= 52) return "uwaga";
-    return "norma";
-  }
-
-  function guideFor(fraction) {
-    return GUIDE[fraction] || {
-      what: "Brak opisu dla tej frakcji.",
-      source: "Dane do uzupełnienia.",
-      why: "Warto dopisać własne źródło i interpretację.",
-      examples: "kurz, aerozol, pył zawieszony",
-      story: "Ta frakcja może zostać opisana po podpięciu własnej klasyfikacji."
-    };
-  }
-
-  function particleSource(record) {
-    if (!record) return null;
-    return record.particles || record.P || record.A || record.F || record;
-  }
-
-  function normalizeRecord(record) {
-    const src = particleSource(record);
-    return FRACTIONS.reduce((acc, item) => {
-      acc[item.key] = toNumber(src && src[item.key]);
-      return acc;
-    }, {});
-  }
-
-  function timestampMs(record, fallbackKey) {
-    const candidates = [record && record.ts, record && record.device_ts, record && record.timestamp, fallbackKey];
-    for (const candidate of candidates) {
-      const numeric = toNumber(candidate);
-      if (numeric == null) continue;
-      const maybeMs = numeric > 1e12 ? numeric : numeric * 1000;
-      if (Number.isFinite(maybeMs)) return maybeMs;
-    }
-    return null;
-  }
-
-  function sortHistoryRecords(raw) {
-    const records = [];
-    for (const [key, value] of Object.entries(raw || {})) {
-      if (!value) continue;
-      const ts = timestampMs(value, key);
-      if (ts == null) continue;
-      records.push({ key, value, ts });
-    }
-    records.sort((a, b) => a.ts - b.ts);
-    return records;
-  }
-
-  function updateHistoryPeak(records) {
-    state.historyPeak = new Map(FRACTIONS.map((item) => [item.key, 0]));
-    for (const entry of records) {
-      const values = normalizeRecord(entry.value);
-      for (const item of FRACTIONS) {
-        const current = values[item.key];
-        if (current == null) continue;
-        const nextPeak = Math.max(state.historyPeak.get(item.key) || 0, current);
-        state.historyPeak.set(item.key, nextPeak);
-      }
-    }
-    state.historySource = records.length ? `${records.length} rekordów historii` : "bez historii";
-  }
-
-  function buildColumns() {
-    barsRow.innerHTML = "";
-    if (xAxis) xAxis.innerHTML = "";
-    state.columnRefs = [];
-
-    FRACTIONS.forEach((item, index) => {
-      const column = document.createElement("div");
-      column.className = "bar-col";
-      column.dataset.index = String(index);
-      column.dataset.fraction = item.fraction;
-
-      const topLine = document.createElement("div");
-      topLine.className = `bar-topline ${item.colorClass}`;
-      topLine.textContent = "—";
-      column.appendChild(topLine);
-
-      const outer = document.createElement("div");
-      outer.className = "bar-outer";
-
-      const vessel = document.createElement("div");
-      vessel.className = "bar-vessel";
-      vessel.style.height = "0%";
-
-      const fill = document.createElement("div");
-      fill.className = "bar-fill";
-
-      const base = document.createElement("div");
-      base.className = "seg seg-base";
-
-      const mid = document.createElement("div");
-      mid.className = "seg seg-mid";
-      const pct = document.createElement("span");
-      pct.className = "lbl-pct";
-      pct.textContent = "—";
-      mid.appendChild(pct);
-
-      const top = document.createElement("div");
-      top.className = `seg seg-top ${item.colorClass}`;
-      const value = document.createElement("span");
-      value.className = `lbl-val ${item.colorClass}`;
-      value.textContent = "—";
-      top.appendChild(value);
-
-      fill.append(base, mid, top);
-      vessel.appendChild(fill);
-      outer.appendChild(vessel);
-      column.appendChild(outer);
-
-      const axis = document.createElement("div");
-      axis.className = "x-col";
-      const xMax = document.createElement("span");
-      xMax.className = "x-max";
-      xMax.textContent = "—";
-      const xFrac = document.createElement("span");
-      xFrac.className = "x-frac";
-      xFrac.textContent = item.fraction;
-      axis.append(xMax, xFrac);
-      xAxis.appendChild(axis);
-
-      column.addEventListener("mousemove", (event) => {
-        if (!tt) return;
-        const row = state.rows[index];
-        tt.style.display = "block";
-        tt.style.left = `${event.clientX + 16}px`;
-        tt.style.top = `${event.clientY - 10}px`;
-        const guide = guideFor(row.fraction);
-        tt.innerHTML = `
-          <b>${row.fraction}</b>
-          Stan: <span class="${row.severity}">${severityLabel(row.fill).toUpperCase()}</span><br>
-          Odczyt: ${formatCount(row.value)}<br>
-          Peak: ${formatCount(row.peak)}<br>
-          Wypełnienie: ${Math.round(row.fill)}%<br>
-          ${guide.story}
-        `;
-      });
-
-      column.addEventListener("mouseleave", () => {
-        if (tt) tt.style.display = "none";
-      });
-
-      column.addEventListener("click", () => openDetails(index));
-
-      barsRow.appendChild(column);
-      state.columnRefs.push({ column, vessel, fill, value, pct, top, topLine, xMax, xFrac });
-    });
-  }
-
-  function renderStory(dominantRow, trendText) {
-    if (!particleStoryText || !particleStoryTags) return;
-    const guide = guideFor(dominantRow.fraction);
-    const severity = dominantRow.severity;
-    particleStoryText.innerHTML = `Dominują teraz <strong>${dominantRow.fraction}</strong>. ${guide.story} W praktyce oznacza to, że wykres opowiada nie tylko o poziomie, ale o tym, czy chodzi o <strong>dym, kurz, bioaerozol</strong> czy zwykłe wzburzenie osadu.`;
-    particleStoryTags.innerHTML = `
-      <span class="story-tag ${severity}"><span class="dot"></span>${dominantRow.fraction}</span>
-      <span class="story-tag ${severity}"><span class="dot"></span>${guide.title}</span>
-      <span class="story-tag"><span class="dot"></span>${trendText}</span>
-    `;
-  }
-
-  function renderMetrics(dominantRow, averageFill, trendText) {
-    if (heroMaxValue) heroMaxValue.textContent = formatCount(dominantRow.value);
-    if (heroMaxMeta) heroMaxMeta.textContent = `${dominantRow.fraction} · ${formatCount(dominantRow.peak || dominantRow.value)} peak`;
-    if (heroAvgValue) heroAvgValue.textContent = `${Math.round(averageFill)}%`;
-    if (heroDominantValue) heroDominantValue.textContent = dominantRow.fraction;
-    if (heroTrendValue) heroTrendValue.textContent = trendText;
-  }
-
-  function renderStatus(message, kind = "info") {
-    state.lastError = kind === "error" ? message : "";
-    if (!simStatus) return;
-    simStatus.textContent = message;
-  }
-
-  function renderActivity(level) {
-    if (!activityLabel) return;
-    const label = level > 0.74 ? "wysoka" : level > 0.46 ? "średnia" : "niska";
-    activityLabel.textContent = label;
-    activityBars.forEach((bar, index) => {
-      const wave = 0.22 + Math.abs(Math.sin((performance.now() / 1000) * 1.2 + index * 0.48)) * level;
-      bar.style.setProperty("--h", wave.toFixed(2));
-      bar.style.opacity = String(0.4 + wave * 0.55);
-    });
-  }
-
-  function applyRecord(record, sourceLabel) {
-    if (!record) {
-      renderStatus("Brak danych w Firebase", "error");
-      return;
-    }
-
-    const values = normalizeRecord(record);
-    const numericValues = FRACTIONS.map((item) => Math.max(0, values[item.key] ?? 0));
-    const samplePeak = Math.max(...numericValues, 1);
-    const sampleSum = numericValues.reduce((sum, value) => sum + value, 0);
-    const previous = state.latestRecord ? normalizeRecord(state.latestRecord) : null;
-
-    state.previousRecord = state.latestRecord;
-    state.latestRecord = record;
-    state.rows = FRACTIONS.map((item, index) => {
-      const value = numericValues[index];
-      const peak = Math.max(state.historyPeak.get(item.key) || 0, value);
-      const fill = samplePeak > 0 ? Math.min(100, (value / samplePeak) * 100) : 0;
-      return {
+  const StateManager = {
+    state: {
+      selectedIndex: 0,
+      rows: FRACTIONS.map((item) => ({
         ...item,
-        value,
-        peak,
-        fill,
-        severity: severityFor(fill)
+        value: null,
+        valueSafe: 0,
+        fill: 0,
+        peakHistory: 0,
+        severity: "good"
+      })),
+      previousSample: null,
+      latestSample: null,
+      historyPeak: new Map(FRACTIONS.map((item) => [item.key, 0])),
+      historySource: "historia: brak",
+      sampleWindow: [],
+      framePending: false,
+      queuedSample: null,
+      liveRef: null
+    },
+
+    setSelectedIndex(index) {
+      const maxIndex = FRACTIONS.length - 1;
+      this.state.selectedIndex = clamp(index, 0, maxIndex);
+    },
+
+    getSelectedRow() {
+      const row = this.state.rows[this.state.selectedIndex];
+      return row || this.state.rows[0] || null;
+    },
+
+    updateHistoryFromRecords(records) {
+      this.state.historyPeak = new Map(FRACTIONS.map((item) => [item.key, 0]));
+
+      for (const entry of records) {
+        const normalized = DataProcessing.normalizeParticles(entry.value);
+        for (const item of FRACTIONS) {
+          const numeric = normalized[item.key];
+          if (numeric == null) continue;
+          const currentPeak = this.state.historyPeak.get(item.key) || 0;
+          this.state.historyPeak.set(item.key, Math.max(currentPeak, numeric));
+        }
+      }
+
+      this.state.historySource = records.length
+        ? `historia: ${records.length} rekordow`
+        : "historia: brak";
+    },
+
+    commitSample(sample) {
+      this.state.previousSample = this.state.latestSample;
+
+      sample.rows.forEach((row) => {
+        const currentPeak = this.state.historyPeak.get(row.key) || 0;
+        if (row.valueSafe > currentPeak) {
+          this.state.historyPeak.set(row.key, row.valueSafe);
+        }
+      });
+
+      const rowsWithPeaks = sample.rows.map((row) => ({
+        ...row,
+        peakHistory: Math.max(this.state.historyPeak.get(row.key) || 0, row.valueSafe)
+      }));
+
+      const committed = {
+        ...sample,
+        rows: rowsWithPeaks,
+        dominant: DataProcessing.findDominant(rowsWithPeaks),
+        averageFill: rowsWithPeaks.reduce((sum, row) => sum + row.fill, 0) / rowsWithPeaks.length
       };
-    });
 
-    let dominantIndex = 0;
-    for (let i = 1; i < state.rows.length; i += 1) {
-      if ((state.rows[i].value || 0) > (state.rows[dominantIndex].value || 0)) dominantIndex = i;
+      this.state.latestSample = committed;
+      this.state.rows = committed.rows;
+
+      this.state.sampleWindow.push({
+        timestampMs: committed.timestampMs,
+        rows: committed.rows.map((row) => ({ key: row.key, valueSafe: row.valueSafe }))
+      });
+
+      if (this.state.sampleWindow.length > MAX_SLIDING_SAMPLES) {
+        this.state.sampleWindow.shift();
+      }
+
+      return committed;
     }
-    const dominantRow = state.rows[dominantIndex];
-    const averageFill = state.rows.reduce((sum, row) => sum + row.fill, 0) / state.rows.length;
+  };
 
-    let trendText = "stabilnie";
-    if (previous) {
-      const previousDominant = FRACTIONS.reduce((best, item) => {
-        const prevValue = previous[item.key] || 0;
-        return prevValue > best.value ? { key: item.key, value: prevValue } : best;
-      }, { key: dominantRow.key, value: previous[dominantRow.key] || 0 });
-      const delta = dominantRow.value - previousDominant.value;
-      const denom = Math.max(previousDominant.value, 1);
-      const pct = Math.round((delta / denom) * 100);
-      if (delta > 0) trendText = `↑ ${pct}%`;
-      else if (delta < 0) trendText = `↓ ${Math.abs(pct)}%`;
-      else trendText = "stabilnie";
-    }
+  const Interactions = {
+    tooltipVisible: false,
 
-    state.columnRefs.forEach((ref, index) => {
-      const row = state.rows[index];
-      const guide = guideFor(row.fraction);
+    install() {
+      if (dom.detailsBtn) {
+        dom.detailsBtn.addEventListener("click", () => {
+          this.openDetails(StateManager.state.selectedIndex);
+        });
+      }
+
+      if (dom.drawerClose) {
+        dom.drawerClose.addEventListener("click", () => this.closeDetails());
+      }
+
+      if (dom.detailsBackdrop) {
+        dom.detailsBackdrop.addEventListener("click", () => this.closeDetails());
+      }
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          this.closeDetails();
+          this.hideTooltip();
+        }
+      });
+
+      document.addEventListener("mousemove", (event) => {
+        if (!this.tooltipVisible || !dom.tooltip || dom.tooltip.style.display !== "block") return;
+        this.positionTooltip(event.clientX, event.clientY);
+      });
+    },
+
+    buildTooltipHtml(row) {
+      const value = row.value == null ? "—" : DataProcessing.formatCount(row.value);
+      const fill = row.value == null ? "—" : DataProcessing.formatPercent(row.fill);
+      const peakHistory = row.peakHistory > 0 ? DataProcessing.formatCount(row.peakHistory) : "—";
       const severity = row.severity;
-      ref.vessel.style.height = `${Math.max(row.fill, 4)}%`;
-      ref.vessel.style.borderColor = severity === "alert"
-        ? "rgba(248,113,113,0.22)"
-        : severity === "warn"
-          ? "rgba(252,211,77,0.18)"
-          : "rgba(52,211,153,0.18)";
-      ref.vessel.style.boxShadow = severity === "alert"
-        ? "0 0 0 1px rgba(248,113,113,0.08) inset, 0 0 20px rgba(248,113,113,0.10)"
-        : severity === "warn"
-          ? "0 0 0 1px rgba(252,211,77,0.08) inset, 0 0 20px rgba(252,211,77,0.09)"
-          : "0 0 0 1px rgba(52,211,153,0.08) inset, 0 0 20px rgba(52,211,153,0.08)";
-      ref.fill.style.opacity = `${0.94 + Math.min(0.06, row.fill * 0.001)}`;
-      ref.value.textContent = formatCount(row.value);
-      ref.value.className = `lbl-val ${severity}`;
-      ref.pct.textContent = `${Math.round(row.fill)}%`;
-      ref.pct.className = `lbl-pct${row.fill > 55 ? " flash" : ""}`;
-      ref.top.className = `seg seg-top ${severity}${row.fill > 72 ? " flash" : ""}`;
-      ref.topLine.textContent = severityLabel(row.fill);
-      ref.topLine.className = `bar-topline ${severity}`;
-      ref.xMax.textContent = `peak ${formatCount(row.peak)}`;
-      ref.xFrac.textContent = row.fraction;
-      ref.column.classList.toggle("column-selected", index === state.selectedIndex);
+      const severityLabel = DataProcessing.severityLabel(row.fill);
 
-      const title = `${row.fraction} · ${guide.title}`;
-      ref.column.dataset.title = title;
-    });
+      return `
+        <b>${row.label}</b>
+        Intensywnosc: <span class="${severity}">${severityLabel}</span><br>
+        Wartosc: ${value}<br>
+        Peak historyczny: ${peakHistory}<br>
+        Fill: ${fill}<br>
+        Interpretacja: ${row.interpretation}
+      `;
+    },
 
-    if (detailsDrawer && detailsDrawer.classList.contains("open")) {
-      openDetails(state.selectedIndex);
-    }
+    showTooltip(index, clientX, clientY) {
+      if (!dom.tooltip) return;
+      const row = StateManager.state.rows[index];
+      if (!row) return;
 
-    renderMetrics(dominantRow, averageFill, trendText);
-    renderStory(dominantRow, trendText);
-    renderActivity(Math.min(1, 0.28 + (sampleSum / Math.max(samplePeak * FRACTIONS.length, 1))));
+      dom.tooltip.innerHTML = this.buildTooltipHtml(row);
+      dom.tooltip.style.display = "block";
+      this.positionTooltip(clientX, clientY);
+      this.tooltipVisible = true;
+    },
 
-    const ts = timestampMs(record, Date.now());
-    const tsLabel = ts ? new Date(ts).toLocaleString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "bez daty";
-    renderStatus(`Live z ${sourceLabel} · ${tsLabel} · ${state.historySource}`);
-  }
+    showTooltipFromFocus(index, columnElement) {
+      const rect = columnElement.getBoundingClientRect();
+      this.showTooltip(index, rect.left + rect.width / 2, rect.top + 14);
+    },
 
-  function openDetails(index) {
-    const row = state.rows[index] || state.rows[0];
-    const guide = guideFor(row.fraction);
-    state.selectedIndex = index;
-
-    state.columnRefs.forEach((ref, refIndex) => {
-      ref.column.classList.toggle("column-selected", refIndex === index);
-    });
-
-    if (drawerTitle) drawerTitle.textContent = `${row.fraction} · ${guide.title}`;
-    if (drawerWhat) drawerWhat.textContent = guide.what;
-    if (drawerSource) drawerSource.textContent = guide.source;
-    if (drawerWhy) drawerWhy.textContent = guide.why;
-    if (drawerExamples) drawerExamples.textContent = guide.examples;
-    if (drawerFoot) {
-      drawerFoot.textContent = `Stan: ${severityLabel(row.fill).toUpperCase()} · ${Math.round(row.fill)}% wypełnienia · ${formatCount(row.value)} odczytu. ${guide.story}`;
-    }
-
-    if (detailsBackdrop) detailsBackdrop.classList.add("open");
-    if (detailsDrawer) {
-      detailsDrawer.classList.add("open");
-      detailsDrawer.setAttribute("aria-hidden", "false");
-    }
-  }
-
-  function closeDetails() {
-    if (detailsBackdrop) detailsBackdrop.classList.remove("open");
-    if (detailsDrawer) {
-      detailsDrawer.classList.remove("open");
-      detailsDrawer.setAttribute("aria-hidden", "true");
-    }
-    state.columnRefs.forEach((ref) => ref.column.classList.remove("column-selected"));
-  }
-
-  function installInteractions() {
-    if (detailsBtn) detailsBtn.addEventListener("click", () => openDetails(state.selectedIndex));
-    if (drawerClose) drawerClose.addEventListener("click", closeDetails);
-    if (detailsBackdrop) detailsBackdrop.addEventListener("click", closeDetails);
-    window.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") closeDetails();
-    });
-
-    document.addEventListener("mousemove", (event) => {
-      if (!tt || tt.style.display !== "block") return;
-      const rect = tt.getBoundingClientRect();
+    positionTooltip(clientX, clientY) {
+      if (!dom.tooltip) return;
+      const rect = dom.tooltip.getBoundingClientRect();
       const maxLeft = window.innerWidth - rect.width - 12;
       const maxTop = window.innerHeight - rect.height - 12;
-      tt.style.left = `${Math.min(event.clientX + 16, maxLeft)}px`;
-      tt.style.top = `${Math.min(event.clientY - 10, maxTop)}px`;
-    });
+      const nextLeft = Math.min(clientX + 16, Math.max(8, maxLeft));
+      const nextTop = Math.min(clientY - 10, Math.max(8, maxTop));
+      dom.tooltip.style.left = `${nextLeft}px`;
+      dom.tooltip.style.top = `${nextTop}px`;
+    },
 
-    window.addEventListener("blur", () => {
-      if (simStatus) simStatus.textContent = "Podgląd w tle";
-    });
-  }
+    hideTooltip() {
+      this.tooltipVisible = false;
+      if (!dom.tooltip) return;
+      dom.tooltip.style.display = "none";
+    },
 
-  async function loadHistoryPeaks() {
-    if (!hasFirebase) return;
-    try {
-      const snap = await firebase.database().ref(HISTORY_PATH).limitToLast(250).get();
-      const records = sortHistoryRecords(snap.val());
-      updateHistoryPeak(records);
-    } catch (error) {
-      state.historySource = "historia niedostępna";
-      console.warn("[pm-chart] history load error:", error && error.message ? error.message : error);
+    openDetails(index) {
+      StateManager.setSelectedIndex(index);
+      Renderer.markSelectedColumn();
+
+      const row = StateManager.getSelectedRow();
+      if (!row) return;
+
+      if (dom.drawerTitle) {
+        dom.drawerTitle.textContent = `${row.label} - ${row.title}`;
+      }
+      if (dom.drawerWhat) {
+        dom.drawerWhat.textContent = row.what;
+      }
+      if (dom.drawerSource) {
+        dom.drawerSource.textContent = row.sources;
+      }
+      if (dom.drawerWhy) {
+        dom.drawerWhy.textContent = row.health;
+      }
+      if (dom.drawerExamples) {
+        dom.drawerExamples.textContent = row.examples;
+      }
+      if (dom.drawerFoot) {
+        const valueText = row.value == null ? "—" : DataProcessing.formatCount(row.value);
+        dom.drawerFoot.textContent = `Interpretacja: ${row.interpretation}. Stan: ${DataProcessing.severityLabel(row.fill)}. Odczyt: ${valueText}. Fill: ${Math.round(row.fill)}%.`;
+      }
+
+      if (dom.detailsBackdrop) {
+        dom.detailsBackdrop.classList.add("open");
+      }
+      if (dom.detailsDrawer) {
+        dom.detailsDrawer.classList.add("open");
+        dom.detailsDrawer.setAttribute("aria-hidden", "false");
+      }
+    },
+
+    closeDetails() {
+      if (dom.detailsBackdrop) {
+        dom.detailsBackdrop.classList.remove("open");
+      }
+      if (dom.detailsDrawer) {
+        dom.detailsDrawer.classList.remove("open");
+        dom.detailsDrawer.setAttribute("aria-hidden", "true");
+      }
+      Renderer.markSelectedColumn();
     }
-  }
+  };
 
-  function subscribeLive() {
-    if (!hasFirebase) {
-      renderStatus("Brak konfiguracji Firebase", "error");
-      return;
+  const Renderer = {
+    columnRefs: [],
+
+    init() {
+      this.buildColumns();
+      this.renderFallbackState();
+    },
+
+    buildColumns() {
+      dom.barsRow.innerHTML = "";
+      dom.xAxis.innerHTML = "";
+      this.columnRefs = [];
+
+      FRACTIONS.forEach((item, index) => {
+        const column = document.createElement("div");
+        column.className = "bar-col";
+        column.dataset.index = String(index);
+        column.dataset.fraction = item.label;
+        column.tabIndex = 0;
+        column.setAttribute("role", "button");
+        column.setAttribute("aria-label", `${item.label}, brak danych`);
+
+        const topLine = document.createElement("div");
+        topLine.className = "bar-topline good";
+        topLine.textContent = "—";
+        column.appendChild(topLine);
+
+        const outer = document.createElement("div");
+        outer.className = "bar-outer";
+
+        const vessel = document.createElement("div");
+        vessel.className = "bar-vessel";
+        vessel.style.height = "0%";
+
+        const fill = document.createElement("div");
+        fill.className = "bar-fill";
+
+        const base = document.createElement("div");
+        base.className = "seg seg-base";
+
+        const mid = document.createElement("div");
+        mid.className = "seg seg-mid";
+        const pct = document.createElement("span");
+        pct.className = "lbl-pct";
+        pct.textContent = "—";
+        mid.appendChild(pct);
+
+        const top = document.createElement("div");
+        top.className = "seg seg-top good";
+        const value = document.createElement("span");
+        value.className = "lbl-val good";
+        value.textContent = "—";
+        top.appendChild(value);
+
+        fill.append(base, mid, top);
+        vessel.appendChild(fill);
+        outer.appendChild(vessel);
+        column.appendChild(outer);
+
+        const axis = document.createElement("div");
+        axis.className = "x-col";
+        const xMax = document.createElement("span");
+        xMax.className = "x-max";
+        xMax.textContent = "peak —";
+        const xFrac = document.createElement("span");
+        xFrac.className = "x-frac";
+        xFrac.textContent = item.label;
+        axis.append(xMax, xFrac);
+
+        column.addEventListener("mousemove", (event) => {
+          Interactions.showTooltip(index, event.clientX, event.clientY);
+        });
+
+        column.addEventListener("mouseleave", () => {
+          Interactions.hideTooltip();
+        });
+
+        column.addEventListener("focus", () => {
+          Interactions.showTooltipFromFocus(index, column);
+        });
+
+        column.addEventListener("blur", () => {
+          Interactions.hideTooltip();
+        });
+
+        column.addEventListener("click", () => {
+          Interactions.openDetails(index);
+        });
+
+        column.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            Interactions.openDetails(index);
+          }
+        });
+
+        dom.barsRow.appendChild(column);
+        dom.xAxis.appendChild(axis);
+
+        this.columnRefs.push({
+          column,
+          vessel,
+          fill,
+          value,
+          pct,
+          top,
+          topLine,
+          xMax,
+          xFrac
+        });
+      });
+    },
+
+    schedule(sample) {
+      StateManager.state.queuedSample = sample;
+      if (StateManager.state.framePending) return;
+
+      StateManager.state.framePending = true;
+      requestAnimationFrame(() => {
+        StateManager.state.framePending = false;
+        const queued = StateManager.state.queuedSample;
+        StateManager.state.queuedSample = null;
+        if (!queued) return;
+        this.renderSample(queued);
+      });
+    },
+
+    markSelectedColumn() {
+      this.columnRefs.forEach((ref, index) => {
+        ref.column.classList.toggle("column-selected", index === StateManager.state.selectedIndex);
+      });
+    },
+
+    renderSample(sample) {
+      const timestampLabel = Number.isFinite(sample.timestampMs)
+        ? new Date(sample.timestampMs).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+        : "bez czasu";
+
+      this.columnRefs.forEach((ref, index) => {
+        const row = sample.rows[index];
+        if (!row) return;
+
+        const hasValue = row.value != null && sample.samplePeak > 0;
+        const fillValue = hasValue ? row.fill : 0;
+        const severity = row.severity;
+
+        ref.vessel.style.height = `${fillValue.toFixed(2)}%`;
+        ref.vessel.style.borderColor = hasValue
+          ? (severity === "alert"
+            ? "rgba(248,113,113,0.25)"
+            : severity === "warn"
+              ? "rgba(252,211,77,0.22)"
+              : "rgba(52,211,153,0.22)")
+          : "rgba(255,255,255,0.08)";
+
+        ref.vessel.style.boxShadow = hasValue
+          ? (severity === "alert"
+            ? "0 0 0 1px rgba(248,113,113,0.10) inset, 0 0 20px rgba(248,113,113,0.12)"
+            : severity === "warn"
+              ? "0 0 0 1px rgba(252,211,77,0.10) inset, 0 0 20px rgba(252,211,77,0.11)"
+              : "0 0 0 1px rgba(52,211,153,0.10) inset, 0 0 20px rgba(52,211,153,0.10)")
+          : "inset 0 1px 0 rgba(255,255,255,0.05)";
+
+        ref.fill.style.opacity = `${0.88 + Math.min(0.12, fillValue / 500)}`;
+        ref.value.textContent = row.value == null ? "—" : DataProcessing.formatCount(row.value);
+        ref.value.className = `lbl-val ${severity}`;
+        ref.pct.textContent = row.value == null ? "—" : DataProcessing.formatPercent(row.fill);
+        ref.pct.className = `lbl-pct${fillValue >= THRESHOLDS.alertFrom ? " flash" : ""}`;
+        ref.top.className = `seg seg-top ${severity}${fillValue >= THRESHOLDS.alertFrom ? " flash" : ""}`;
+
+        ref.topLine.textContent = row.value == null ? "—" : DataProcessing.severityLabel(row.fill);
+        ref.topLine.className = `bar-topline ${severity}`;
+
+        ref.xMax.textContent = row.peakHistory > 0 ? `peak ${DataProcessing.formatCount(row.peakHistory)}` : "peak —";
+        ref.xFrac.textContent = row.label;
+
+        ref.column.setAttribute(
+          "aria-label",
+          `${row.label}, odczyt ${row.value == null ? "brak" : DataProcessing.formatCount(row.value)}, fill ${Math.round(row.fill)} procent`
+        );
+      });
+
+      this.markSelectedColumn();
+      this.renderHero(sample);
+      this.renderStory(sample);
+      this.renderActivity(sample);
+      this.renderStatus(`Live: ${sample.sourceLabel} - ${timestampLabel} - ${StateManager.state.historySource}`);
+
+      if (dom.detailsDrawer && dom.detailsDrawer.classList.contains("open")) {
+        Interactions.openDetails(StateManager.state.selectedIndex);
+      }
+    },
+
+    renderHero(sample) {
+      if (!sample.hasAnyValue || !sample.dominant || sample.samplePeak <= 0) {
+        if (dom.heroMaxValue) dom.heroMaxValue.textContent = "—";
+        if (dom.heroMaxMeta) dom.heroMaxMeta.textContent = "brak stabilnej probki";
+        if (dom.heroAvgValue) dom.heroAvgValue.textContent = "—";
+        if (dom.heroDominantValue) dom.heroDominantValue.textContent = "—";
+        if (dom.heroTrendValue) dom.heroTrendValue.textContent = "stabilnie";
+        return;
+      }
+
+      if (dom.heroMaxValue) dom.heroMaxValue.textContent = DataProcessing.formatCount(sample.samplePeak);
+      if (dom.heroMaxMeta) {
+        dom.heroMaxMeta.textContent = `${sample.dominant.label} - peak hist ${DataProcessing.formatCount(sample.dominant.peakHistory)}`;
+      }
+      if (dom.heroAvgValue) dom.heroAvgValue.textContent = `${Math.round(sample.averageFill)}%`;
+      if (dom.heroDominantValue) dom.heroDominantValue.textContent = sample.dominant.label;
+      if (dom.heroTrendValue) {
+        const symbol = sample.trend.direction === "up" ? "UP" : sample.trend.direction === "down" ? "DOWN" : "FLAT";
+        dom.heroTrendValue.textContent = `${symbol} ${sample.trend.label}`;
+      }
+    },
+
+    renderStory(sample) {
+      if (!dom.particleStoryText || !dom.particleStoryTags) return;
+
+      if (!sample.hasAnyValue || !sample.dominant || sample.samplePeak <= 0) {
+        dom.particleStoryText.innerHTML = "Brak wiarygodnej probki particle size distribution. System czeka na dane live i utrzymuje bezpieczny fallback dla pustych lub niestabilnych rekordow.";
+        dom.particleStoryTags.innerHTML = [
+          '<span class="story-tag"><span class="dot"></span>brak danych</span>',
+          '<span class="story-tag"><span class="dot"></span>oczekiwanie</span>',
+          '<span class="story-tag"><span class="dot"></span>fallback aktywny</span>'
+        ].join("");
+        return;
+      }
+
+      const dominant = sample.dominant;
+      const trendPart = sample.trend.direction === "up"
+        ? "Udzial tej frakcji rosnie wzgledem poprzedniej probki."
+        : sample.trend.direction === "down"
+          ? "Udzial tej frakcji slabnie wzgledem poprzedniej probki."
+          : "Udzial tej frakcji jest stabilny.";
+
+      const shiftPart = sample.trend.dominantShift && sample.trend.previousDominantKey
+        ? `Zmiana lidera frakcji sugeruje przejscie charakteru zanieczyszczenia.`
+        : "Lider frakcji pozostaje bez zmiany.";
+
+      dom.particleStoryText.innerHTML = `Dominuje <strong>${dominant.label}</strong> - ${dominant.interpretation}. ${trendPart} ${shiftPart}`;
+      dom.particleStoryTags.innerHTML = [
+        `<span class="story-tag ${dominant.severity}"><span class="dot"></span>${dominant.label}</span>`,
+        `<span class="story-tag ${dominant.severity}"><span class="dot"></span>${DataProcessing.severityLabel(dominant.fill)}</span>`,
+        `<span class="story-tag"><span class="dot"></span>${sample.trend.label}</span>`
+      ].join("");
+    },
+
+    renderActivity(sample) {
+      if (!dom.activityLabel || !dom.activityBars.length) return;
+
+      const baseLevel = sample.hasAnyValue ? sample.averageFill / 100 : 0.12;
+      const trendBoost = sample.trend.direction === "up" ? 0.14 : sample.trend.direction === "down" ? -0.06 : 0;
+      const activity = clamp(baseLevel + trendBoost, 0.1, 1);
+
+      const label = activity > 0.72 ? "wysoka" : activity > 0.44 ? "srednia" : "niska";
+      dom.activityLabel.textContent = label;
+
+      const seed = (sample.timestampMs || Date.now()) / 1000;
+      dom.activityBars.forEach((bar, index) => {
+        const wave = 0.18 + Math.abs(Math.sin(seed * 1.1 + index * 0.55)) * (0.25 + activity * 0.62);
+        bar.style.setProperty("--h", clamp(wave, 0.12, 1).toFixed(2));
+        bar.style.opacity = String(0.35 + wave * 0.52);
+      });
+    },
+
+    renderStatus(message) {
+      if (!dom.simStatus) return;
+      dom.simStatus.textContent = message;
+    },
+
+    renderFallbackState() {
+      this.renderStatus("Laczenie z Firebase RTDB...");
+      const fallbackSample = DataProcessing.buildSample(
+        {},
+        "particles.*",
+        null,
+        StateManager.state.historyPeak
+      );
+      const committed = StateManager.commitSample(fallbackSample);
+      this.renderSample(committed);
     }
+  };
 
-    const ref = firebase.database().ref(LIVE_PATH);
-    ref.on(
-      "value",
-      (snap) => {
-        const record = snap.val();
-        if (!record) {
-          renderStatus("Brak danych w devices/device1/latest", "error");
+  const RealtimeEngine = {
+    async bootstrap() {
+      Renderer.init();
+      Interactions.install();
+
+      if (!hasFirebaseRuntime) {
+        Renderer.renderStatus("Brak konfiguracji Firebase lub brak bibliotek Firebase.");
+        return;
+      }
+
+      try {
+        if (!firebase.apps || !firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+      } catch (error) {
+        const message = error && error.message ? error.message : "Blad inicjalizacji Firebase";
+        Renderer.renderStatus(message);
+      }
+
+      await this.loadHistory();
+      this.subscribeLive();
+
+      window.addEventListener("beforeunload", () => {
+        if (StateManager.state.liveRef) {
+          StateManager.state.liveRef.off();
+        }
+      });
+    },
+
+    async loadHistory() {
+      try {
+        const snapshot = await firebase
+          .database()
+          .ref(HISTORY_PATH)
+          .limitToLast(MAX_HISTORY_FETCH)
+          .get();
+
+        const records = DataProcessing.sortHistoryRecords(snapshot.val());
+        StateManager.updateHistoryFromRecords(records);
+
+        if (!records.length) {
+          Renderer.renderStatus(`Historia pusta, nasluch LIVE na ${LIVE_PATH}`);
           return;
         }
-        applyRecord(record, LIVE_PATH);
-      },
-      (error) => {
-        const message = error && error.message ? error.message : "Błąd odczytu Firebase";
-        renderStatus(message, "error");
-        console.warn("[pm-chart] live listener error:", message);
+
+        const bootstrapRecord = records[records.length - 1].value;
+        const sample = DataProcessing.buildSample(
+          bootstrapRecord,
+          "history bootstrap",
+          StateManager.state.latestSample,
+          StateManager.state.historyPeak
+        );
+        const committed = StateManager.commitSample(sample);
+        Renderer.schedule(committed);
+      } catch (error) {
+        const message = error && error.message ? error.message : "Nie mozna pobrac historii";
+        StateManager.state.historySource = "historia: niedostepna";
+        Renderer.renderStatus(message);
       }
-    );
-  }
+    },
 
-  function bootstrap() {
-    buildColumns();
-    installInteractions();
+    subscribeLive() {
+      const ref = firebase.database().ref(LIVE_PATH);
+      StateManager.state.liveRef = ref;
 
-    if (!hasFirebase) {
-      renderStatus("Brak konfiguracji Firebase", "error");
-      return;
+      ref.on(
+        "value",
+        (snapshot) => {
+          const record = snapshot.val();
+
+          const sample = DataProcessing.buildSample(
+            record || {},
+            LIVE_PATH,
+            StateManager.state.latestSample,
+            StateManager.state.historyPeak
+          );
+
+          const committed = StateManager.commitSample(sample);
+          Renderer.schedule(committed);
+        },
+        (error) => {
+          const message = error && error.message ? error.message : "Blad nasluchu LIVE";
+          Renderer.renderStatus(message);
+        }
+      );
     }
+  };
 
-    try {
-      if (!firebase.apps || !firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-      }
-    } catch (error) {
-      console.warn("[pm-chart] firebase init error:", error && error.message ? error.message : error);
-    }
-
-    loadHistoryPeaks()
-      .catch(() => null)
-      .then(() => subscribeLive());
-  }
-
-  try {
-    if (firebaseConfig && firebaseConfig.databaseURL && !window.firebase) {
-      renderStatus("Brak bibliotek Firebase na stronie", "error");
-      return;
-    }
-    bootstrap();
-  } catch (error) {
-    const message = error && error.message ? error.message : "Nie udało się uruchomić podglądu PM";
-    renderStatus(message, "error");
-    console.warn("[pm-chart] bootstrap error:", message);
-  }
+  RealtimeEngine.bootstrap().catch((error) => {
+    const message = error && error.message ? error.message : "Nie udalo sie uruchomic widoku particles";
+    Renderer.renderStatus(message);
+  });
 })();
