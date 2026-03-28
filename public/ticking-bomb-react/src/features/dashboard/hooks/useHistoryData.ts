@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useAppContext } from '../../../App';
+import { useAppContext } from '../../../shared/context/AppContext';
 import { loadHistoryByDay, loadHistoryFallback } from '../api/firebaseAdapter';
 import { dateRangeForDay, isDateKeyInRange } from '../../../shared/lib/dateHelpers';
 import { sortChartPoints } from '../../../shared/lib/chartHelpers';
+import { getRuntimeDeviceId } from '../../../shared/lib/runtimeConfig';
 import { toEpochMs } from '../../../shared/lib/timeHelpers';
 import type { ChartPoint, HistoryRecord, LoadState } from '../../../shared/types';
-
-function getDeviceId(): string {
-  return window.__DEVICE_ID__ || localStorage.getItem('firebaseDeviceId') || 'device1';
-}
 
 function filterRecordsForDay(records: HistoryRecord[], date: string): HistoryRecord[] {
   const range = dateRangeForDay(date);
@@ -43,11 +40,21 @@ interface HistoryDataResult {
   dataDensity: number;
 }
 
+interface HistoryDataState {
+  dateKey: string;
+  points: ChartPoint[];
+  loadState: LoadState;
+  dataDensity: number;
+}
+
 export function useHistoryData(selectedDate: string): HistoryDataResult {
   const { pushAlert } = useAppContext();
-  const [points, setPoints] = useState<ChartPoint[]>([]);
-  const [loadState, setLoadState] = useState<LoadState>('loading');
-  const [dataDensity, setDataDensity] = useState(0);
+  const [state, setState] = useState<HistoryDataState>(() => ({
+    dateKey: selectedDate,
+    points: [],
+    loadState: 'loading',
+    dataDensity: 0,
+  }));
 
   useEffect(() => {
     let cancelled = false;
@@ -58,18 +65,17 @@ export function useHistoryData(selectedDate: string): HistoryDataResult {
       }
 
       settled = true;
-      setPoints([]);
-      setDataDensity(0);
-      setLoadState('error');
+      setState({
+        dateKey: selectedDate,
+        points: [],
+        dataDensity: 0,
+        loadState: 'error',
+      });
     }, 8_000);
-
-    setLoadState('loading');
-    setPoints([]);
-    setDataDensity(0);
 
     async function loadHistory() {
       try {
-        const deviceId = getDeviceId();
+        const deviceId = getRuntimeDeviceId();
         const primaryRecords = filterRecordsForDay(await loadHistoryByDay(deviceId, selectedDate), selectedDate);
         const records = primaryRecords.length > 0 ? primaryRecords : filterRecordsForDay(await loadHistoryFallback(deviceId, selectedDate), selectedDate);
 
@@ -81,17 +87,23 @@ export function useHistoryData(selectedDate: string): HistoryDataResult {
         window.clearTimeout(timeoutId);
 
         if (records.length === 0) {
-          setPoints([]);
-          setDataDensity(0);
-          setLoadState('empty');
+          setState({
+            dateKey: selectedDate,
+            points: [],
+            dataDensity: 0,
+            loadState: 'empty',
+          });
           pushAlert({ level: 'warn', message: `Brak danych dla ${selectedDate}.`, autoDismiss: true });
           return;
         }
 
         const nextPoints = recordsToPoints(records);
-        setPoints(nextPoints);
-        setDataDensity(nextPoints.length);
-        setLoadState('loaded');
+        setState({
+          dateKey: selectedDate,
+          points: nextPoints,
+          dataDensity: nextPoints.length,
+          loadState: 'loaded',
+        });
       } catch {
         if (cancelled || settled) {
           return;
@@ -99,9 +111,12 @@ export function useHistoryData(selectedDate: string): HistoryDataResult {
 
         settled = true;
         window.clearTimeout(timeoutId);
-        setPoints([]);
-        setDataDensity(0);
-        setLoadState('error');
+        setState({
+          dateKey: selectedDate,
+          points: [],
+          dataDensity: 0,
+          loadState: 'error',
+        });
         pushAlert({ level: 'error', message: 'Błąd pobierania danych historycznych.', autoDismiss: false });
       }
     }
@@ -112,7 +127,15 @@ export function useHistoryData(selectedDate: string): HistoryDataResult {
       cancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [selectedDate]);
+  }, [pushAlert, selectedDate]);
 
-  return { points, loadState, dataDensity };
+  if (state.dateKey !== selectedDate) {
+    return { points: [], loadState: 'loading', dataDensity: 0 };
+  }
+
+  return {
+    points: state.points,
+    loadState: state.loadState,
+    dataDensity: state.dataDensity,
+  };
 }

@@ -11,7 +11,7 @@ import { usePmsHistory } from '../usePmsHistory';
 
 const pushAlert = vi.hoisted(() => vi.fn());
 
-vi.mock('../../../../App', () => ({
+vi.mock('../../../../shared/context/AppContext', () => ({
   useAppContext: () => ({ pushAlert }),
 }));
 

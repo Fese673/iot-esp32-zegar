@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { buildFollowWindow, shouldAutoFollowLatest } from '../PmsChartController';
+import { buildFollowWindow, shouldAutoFollowLatest } from '../../lib/pmsFollowWindow';
 
 test('shouldAutoFollowLatest is false when latest point is far from right edge', () => {
   const windowRange = { start: 0, end: 1000 };

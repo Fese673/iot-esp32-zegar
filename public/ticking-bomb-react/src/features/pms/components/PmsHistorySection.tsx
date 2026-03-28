@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
 import Calendar from '../../../shared/components/Calendar';
 import { useCalendar } from '../../../shared/hooks/useCalendar';
-import { extractPmRawLike } from '../lib/pmsLiveHelpers';
-import { usePmsLive } from '../hooks/usePmsLive';
+import { extractPmRawLike } from '../lib/pmsHelpers';
 import { usePmsData } from '../hooks/usePmsData';
 import PmsChartController from './PmsChartController';
 
@@ -24,15 +23,20 @@ function densityLabel(totalPoints: number): string {
 
 export default function PmsHistorySection() {
   const calendar = useCalendar();
-  const { points: chartPoints, loadState, dataDensity } = usePmsData(calendar.state.selectedDate);
-  const live = usePmsLive();
-  const livePmsRaw = useMemo(() => extractPmRawLike(live.data), [live.data]);
+  const {
+    points: chartPoints,
+    loadState,
+    dataDensity,
+    liveData,
+    liveStatus,
+  } = usePmsData(calendar.state.selectedDate);
+  const livePmsRaw = useMemo(() => extractPmRawLike(liveData), [liveData]);
 
   const modeInfo = `Wybrany dzień: ${calendar.state.selectedDate}`;
   const density = loadState === 'loaded' || loadState === 'empty'
     ? densityLabel(dataDensity)
     : '–';
-  const liveMeta = live.status === 'loaded' ? 'LIVE' : live.status === 'empty' ? 'Brak danych' : 'Czekam na dane';
+  const liveMeta = liveStatus === 'loaded' ? 'LIVE' : liveStatus === 'empty' ? 'Brak danych' : 'Czekam na dane';
   const pm1Value = livePmsRaw ? Number(livePmsRaw.pm1).toFixed(1) : '--';
   const pm25Value = livePmsRaw ? Number(livePmsRaw.pm25).toFixed(1) : '--';
   const pm10Value = livePmsRaw ? Number(livePmsRaw.pm10).toFixed(1) : '--';

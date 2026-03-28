@@ -1,11 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAppContext } from '../../../App';
+import { useAppContext } from '../../../shared/context/AppContext';
 import { subscribeLiveMetrics } from '../api/firebaseAdapter';
+import { getRuntimeDeviceId } from '../../../shared/lib/runtimeConfig';
 import type { LoadState, LiveRecord } from '../../../shared/types';
-
-function getDeviceId(): string {
-  return window.__DEVICE_ID__ || localStorage.getItem('firebaseDeviceId') || 'device1';
-}
 
 export function useLiveMetrics(): { data: LiveRecord | null; status: LoadState } {
   const { pushAlert } = useAppContext();
@@ -15,7 +12,6 @@ export function useLiveMetrics(): { data: LiveRecord | null; status: LoadState }
   const hasAnnouncedSuccessRef = useRef(false);
 
   useEffect(() => {
-    setStatus('loading');
     hasReceivedDataRef.current = false;
 
     const timeoutId = window.setTimeout(() => {
@@ -25,7 +21,7 @@ export function useLiveMetrics(): { data: LiveRecord | null; status: LoadState }
       }
     }, 4000);
 
-    const unsubscribe = subscribeLiveMetrics(getDeviceId(), (record) => {
+    const unsubscribe = subscribeLiveMetrics(getRuntimeDeviceId(), (record) => {
       hasReceivedDataRef.current = true;
       setData(record);
       setStatus('loaded');
@@ -51,7 +47,7 @@ export function useLiveMetrics(): { data: LiveRecord | null; status: LoadState }
       window.clearTimeout(timeoutId);
       unsubscribe();
     };
-  }, []);
+  }, [pushAlert]);
 
   return { data, status };
 }

@@ -12,15 +12,15 @@ Priorytetem jest zgodność zachowania, lifecycle Chart.js, kontraktu danych i i
 - Current React history section: `src/features/pms/components/PmsHistorySection.tsx`
 - Current chart controller: `src/features/pms/components/PmsChartController.tsx`
 - Current chart renderer: `src/features/pms/components/PmsChart.tsx`
-- PMS live panel: `src/features/pms/components/PmsLivePanel.tsx`
-- Shared PM helpers: `src/features/pms/lib/pmsLiveHelpers.ts`
+- Current PMS data combiner: `src/features/pms/hooks/usePmsData.ts`
+- Shared PM helpers: `src/features/pms/lib/pmsHelpers.ts`
 
 ## Stan docelowy
 
 - Wykres historii PMS działa w osobnym module, bez współdzielenia stanu z dashboardem.
 - Chart.js jest tworzony raz, aktualizowany przy zmianie danych i niszczony w cleanup.
 - Wykres zachowuje baseline: etykiety, kolory, tooltipy, osie, kolejność serii i zakres Y.
-- Panel live nie współdzieli danych, refów ani efektów z historią.
+- Kafelki live PM są zasilane niezależnie od historii (oddzielne źródła danych i efekty).
 - Layout po usunięciu `<aside class="pm-live-info">` nie zostawia pustych przestrzeni.
 
 ## Porównanie baseline vs React
@@ -58,7 +58,7 @@ Warunek zakończenia:
 Cel: żadnych wspólnych efektów ani stanów między panelem live i historią.
 
 Zadania:
-1. Utrzymać `PmsLivePanel` i `PmsHistorySection` jako osobne moduły.
+1. Utrzymać rozdział odpowiedzialności między live PM a historią (`usePmsLive` / `usePmsHistory` + `usePmsData`).
 2. Nie przekazywać stanu wykresu ani refów między nimi.
 3. Zachować wizualny separator między blokami.
 
@@ -67,15 +67,15 @@ Warunek zakończenia:
 
 ### Etap 2. Parity danych dla panelu live
 
-Cel: panel live ma pokazywać baseline'owe frakcje, a nie mylone wartości PM.
+Cel: panel live ma pokazywać poprawne wartości PM, a nie mylone pola z rekordu.
 
 Zadania:
-1. Utrzymać model sześciu frakcji baseline.
+1. Utrzymać model trzech kafelków PM (`PM1`, `PM2.5`, `PM10`) zgodnie z aktualnym UI.
 2. Sprawdzić, czy wartości pochodzą z właściwego źródła `particles / P / A / F`.
-3. Porównać `buildParticleRows()` z baseline helperami i dopasować etykiety, kolory, progi i teksty.
+3. Utrzymać zgodność mapowania `extractPmRawLike()` z baseline adapterem i etykietami UI.
 
 Warunek zakończenia:
-- Panel live pokazuje te same frakcje i znaczenie danych co baseline.
+- Panel live pokazuje poprawne wartości PM i zgodne znaczenie danych względem baseline.
 
 ### Etap 3. Parity Chart.js dla historii
 
@@ -107,8 +107,8 @@ Warunek zakończenia:
 Cel: usunąć puste przestrzenie po `aside` i utrzymać czytelny układ.
 
 Zadania:
-1. Potwierdzić, że `.pm-live-layout` nie rezerwuje już kolumny dla usuniętego `aside`.
-2. Upewnić się, że `.pm-live-chart` zajmuje pełną szerokość dostępnego bloku.
+1. Potwierdzić, że sekcja `.pms5003-grid` nie rezerwuje miejsca po usuniętych blokach live-preview.
+2. Upewnić się, że część wykresowa i kalendarz w `.panel-body.split` zajmują pełną szerokość dostępnego bloku.
 3. Zachować wizualne obramowanie i separator między blokami.
 
 Warunek zakończenia:
@@ -120,7 +120,7 @@ Cel: zamknąć ryzyko ponownego zepsucia wykresu.
 
 Zadania:
 1. Test lifecycle Chart.js dla historii.
-2. Test mapowania baseline'owych frakcji dla panelu live.
+2. Test mapowania live PM (`pm1/pm25/pm10`) dla panelu live.
 3. Testy danych historycznych i fallbacków.
 4. Manualna weryfikacja: dziś, inny dzień, brak danych, błąd Firebase.
 
@@ -179,6 +179,8 @@ Warunek zakończenia:
 
 ## Status wykonania
 
+Stan na 2026-03-28: statusy poniżej odzwierciedlają zamknięte etapy refaktoru w aktualnej wersji kodu.
+
 - Etap 0: zrobiony i zweryfikowany.
 - Etap 1: zrobiony i zweryfikowany.
 - Etap 2: zrobiony i zweryfikowany.
@@ -194,8 +196,8 @@ Warunek zakończenia:
 ## Kryteria akceptacji
 
 - `pms-inner-panel` jest całkowicie niezależną sekcją.
-- Panel live nie używa `aside.pm-live-info`.
-- Panel live pokazuje baseline'owe frakcje i zgodne etykiety.
+- Panel live nie używa usuniętych bloków preview (`pm-live-info` / `pm-live-layout`).
+- Panel live pokazuje poprawne PM 1.0 / PM 2.5 / PM 10 i zgodne etykiety.
 - Trzy kafelki w `pms5003-grid` pokazują live PM 1.0 / PM 2.5 / PM 10 z właściwego rekordu Firebase.
 - Wykres historii odświeża live punkt nawet gdy snapshot używa tego samego timestampu.
 - Live timestamp PMS jest normalizowany do epoch ms jak w panelu historii danych.

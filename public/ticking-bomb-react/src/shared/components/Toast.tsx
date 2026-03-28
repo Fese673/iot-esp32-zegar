@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useAppContext } from '../../App';
+import { useAppContext } from '../context/AppContext';
 
 function Toast() {
   const { state, hideToast } = useAppContext();

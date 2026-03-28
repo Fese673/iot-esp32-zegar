@@ -10,8 +10,18 @@ export interface PmsChartPoint {
   y: number;
 }
 
+const SERIES_SORT_ORDER: Record<PmsSeriesKey, number> = {
+  pm1: 0,
+  pm25: 1,
+  pm10: 2,
+};
+
+function pointCompositeKey(point: Pick<PmsChartPoint, 'series' | 'x'>): string {
+  return `${point.series}:${point.x}`;
+}
+
 export function sortPmsChartPoints(points: PmsChartPoint[]): PmsChartPoint[] {
-  return [...points].sort((left, right) => left.x - right.x || left.series.localeCompare(right.series));
+  return [...points].sort((left, right) => left.x - right.x || SERIES_SORT_ORDER[left.series] - SERIES_SORT_ORDER[right.series]);
 }
 
 export function groupPmsChartPointsBySeries(points: PmsChartPoint[]): Record<PmsSeriesKey, PmsChartPoint[]> {
@@ -25,8 +35,45 @@ export function groupPmsChartPointsBySeries(points: PmsChartPoint[]): Record<Pms
 }
 
 export function appendUniquePmsChartPoint(points: PmsChartPoint[], point: PmsChartPoint): PmsChartPoint[] {
-  const nextPoints = points.filter((existing) => !(existing.series === point.series && existing.x === point.x));
-  nextPoints.push(point);
+  return mergePmsChartPoints(points, [point]);
+}
+
+export function mergePmsChartPoints(basePoints: PmsChartPoint[], incomingPoints: PmsChartPoint[]): PmsChartPoint[] {
+  if (!incomingPoints.length) {
+    return basePoints;
+  }
+
+  const nextPoints = [...basePoints];
+  const indexByKey = new Map<string, number>();
+
+  for (let index = 0; index < nextPoints.length; index += 1) {
+    indexByKey.set(pointCompositeKey(nextPoints[index]), index);
+  }
+
+  let changed = false;
+
+  for (const incoming of incomingPoints) {
+    const key = pointCompositeKey(incoming);
+    const existingIndex = indexByKey.get(key);
+
+    if (existingIndex == null) {
+      nextPoints.push(incoming);
+      indexByKey.set(key, nextPoints.length - 1);
+      changed = true;
+      continue;
+    }
+
+    const existingPoint = nextPoints[existingIndex];
+    if (existingPoint.y !== incoming.y) {
+      nextPoints[existingIndex] = incoming;
+      changed = true;
+    }
+  }
+
+  if (!changed) {
+    return basePoints;
+  }
+
   return sortPmsChartPoints(nextPoints);
 }
 

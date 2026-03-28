@@ -39,6 +39,7 @@ describe('PmsHistorySection live tiles', () => {
       },
       status: 'loaded',
       timestamp: 1_700_000_000_000,
+      points: [],
     });
 
     usePmsHistoryMock.mockReturnValue({

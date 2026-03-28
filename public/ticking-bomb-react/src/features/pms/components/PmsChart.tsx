@@ -260,7 +260,7 @@ export default function PmsChart({
     applyWindowToChart(chart, windowRange);
 
     chart.update('none');
-  }, [loadState, seriesData, windowRange]);
+  }, [chartRef, loadState, seriesData, windowRange]);
 
   const showLoading = loadState === 'loading';
   const showNote = loadState === 'empty';

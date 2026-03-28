@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useAppContext } from '../../../App';
+import { useAppContext } from '../../../shared/context/AppContext';
 import { loadPmsHistoryByDay, loadPmsHistoryFallback } from '../api/pmsAdapter';
 import { dateRangeForDay, isDateKeyInRange, toDateKey } from '../../../shared/lib/dateHelpers';
+import { getRuntimeDeviceId } from '../../../shared/lib/runtimeConfig';
 import { toEpochMs } from '../../../shared/lib/timeHelpers';
 import { recordToPmsChartPoints, sortPmsChartPoints, type PmsChartPoint } from '../lib/pmsChartHelpers';
 import type { LoadState, PmsRecord } from '../../../shared/types';
-
-function getDeviceId(): string {
-  return window.__DEVICE_ID__ || localStorage.getItem('firebaseDeviceId') || 'device1';
-}
 
 function filterRecordsForDay(records: PmsRecord[], date: string): PmsRecord[] {
   const range = dateRangeForDay(date);
@@ -26,14 +23,24 @@ interface PmsHistoryResult {
   dataDensity: number;
 }
 
+interface PmsHistoryState {
+  dateKey: string;
+  points: PmsChartPoint[];
+  loadState: LoadState;
+  dataDensity: number;
+}
+
 export function usePmsHistory(selectedDate: string): PmsHistoryResult {
   const { pushAlert } = useAppContext();
-  const [points, setPoints] = useState<PmsChartPoint[]>([]);
-  const [loadState, setLoadState] = useState<LoadState>('loading');
-  const [dataDensity, setDataDensity] = useState(0);
-  const isSelectedToday = selectedDate === toDateKey(new Date());
+  const [state, setState] = useState<PmsHistoryState>(() => ({
+    dateKey: selectedDate,
+    points: [],
+    loadState: 'loading',
+    dataDensity: 0,
+  }));
 
   useEffect(() => {
+    const selectedIsToday = selectedDate === toDateKey(new Date());
     let cancelled = false;
     let settled = false;
     const timeoutId = window.setTimeout(() => {
@@ -42,22 +49,21 @@ export function usePmsHistory(selectedDate: string): PmsHistoryResult {
       }
 
       settled = true;
-      setPoints([]);
-      setDataDensity(0);
-      setLoadState('empty');
+      setState({
+        dateKey: selectedDate,
+        points: [],
+        dataDensity: 0,
+        loadState: 'empty',
+      });
 
-      if (!isSelectedToday) {
+      if (!selectedIsToday) {
         pushAlert({ level: 'error', message: 'Błąd pobierania historii PMS.', autoDismiss: false });
       }
     }, 8_000);
 
-    setLoadState('loading');
-    setPoints([]);
-    setDataDensity(0);
-
     async function loadHistory() {
       try {
-        const deviceId = getDeviceId();
+        const deviceId = getRuntimeDeviceId();
         const primaryRecords = filterRecordsForDay(await loadPmsHistoryByDay(deviceId, selectedDate), selectedDate);
         const records = primaryRecords.length > 0
           ? primaryRecords
@@ -71,19 +77,25 @@ export function usePmsHistory(selectedDate: string): PmsHistoryResult {
         window.clearTimeout(timeoutId);
 
         if (records.length === 0) {
-          setPoints([]);
-          setDataDensity(0);
-          setLoadState('empty');
-          if (!isSelectedToday) {
+          setState({
+            dateKey: selectedDate,
+            points: [],
+            dataDensity: 0,
+            loadState: 'empty',
+          });
+          if (!selectedIsToday) {
             pushAlert({ level: 'warn', message: `Brak danych PMS dla ${selectedDate}.`, autoDismiss: true });
           }
           return;
         }
 
         const nextPoints = recordsToPoints(records);
-        setPoints(nextPoints);
-        setDataDensity(nextPoints.length);
-        setLoadState('loaded');
+        setState({
+          dateKey: selectedDate,
+          points: nextPoints,
+          dataDensity: nextPoints.length,
+          loadState: 'loaded',
+        });
       } catch {
         if (cancelled || settled) {
           return;
@@ -91,11 +103,14 @@ export function usePmsHistory(selectedDate: string): PmsHistoryResult {
 
         settled = true;
         window.clearTimeout(timeoutId);
-        setPoints([]);
-        setDataDensity(0);
-        setLoadState('empty');
+        setState({
+          dateKey: selectedDate,
+          points: [],
+          dataDensity: 0,
+          loadState: 'empty',
+        });
 
-        if (!isSelectedToday) {
+        if (!selectedIsToday) {
           pushAlert({ level: 'error', message: 'Błąd pobierania historii PMS.', autoDismiss: false });
         }
       }
@@ -109,5 +124,13 @@ export function usePmsHistory(selectedDate: string): PmsHistoryResult {
     };
   }, [pushAlert, selectedDate]);
 
-  return { points, loadState, dataDensity };
+  if (state.dateKey !== selectedDate) {
+    return { points: [], loadState: 'loading', dataDensity: 0 };
+  }
+
+  return {
+    points: state.points,
+    loadState: state.loadState,
+    dataDensity: state.dataDensity,
+  };
 }

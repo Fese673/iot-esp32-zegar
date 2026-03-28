@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAppContext } from '../../../App';
+import { useAppContext } from '../../../shared/context/AppContext';
 import { formatClock, toEpochMs } from '../../../shared/lib/timeHelpers';
 import type { ClockState } from '../../../shared/types';
 
@@ -62,7 +62,7 @@ export function useClock(ts: number | undefined): ClockState {
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [ts]);
+  }, [pushAlert, ts]);
 
   return state;
 }

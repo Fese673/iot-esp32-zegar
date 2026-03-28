@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { useAppContext } from '../../../App';
+import { useEffect, useMemo, useRef } from 'react';
+import { useAppContext } from '../../../shared/context/AppContext';
 import { humanTime, toEpochMs } from '../../../shared/lib/timeHelpers';
-import type { LiveRecord } from '../../../shared/types';
+import type { ConnectionStatus, LiveRecord } from '../../../shared/types';
 
 function getConnectionStatus(ageMs: number): 'connected' | 'reconnecting' | 'disconnected' {
   if (ageMs < 20_000) {
@@ -17,19 +17,25 @@ function getConnectionStatus(ageMs: number): 'connected' | 'reconnecting' | 'dis
 
 export function useConnectionHealth(latestRecord: LiveRecord | null): { lastSeen: string } {
   const { dispatch } = useAppContext();
-  const [lastSeen, setLastSeen] = useState('--:--');
+  const lastStatusRef = useRef<ConnectionStatus | null>(null);
+  const lastSeen = useMemo(() => (latestRecord ? humanTime(latestRecord.ts) : '--:--'), [latestRecord]);
 
   useEffect(() => {
     if (!latestRecord) {
-      setLastSeen('--:--');
-      dispatch({ type: 'SET_CONNECTION', payload: 'disconnected' });
+      if (lastStatusRef.current !== 'disconnected') {
+        lastStatusRef.current = 'disconnected';
+        dispatch({ type: 'SET_CONNECTION', payload: 'disconnected' });
+      }
       return;
     }
 
     const updateHealth = () => {
       const ageMs = Date.now() - toEpochMs(latestRecord.ts);
-      setLastSeen(humanTime(latestRecord.ts));
-      dispatch({ type: 'SET_CONNECTION', payload: getConnectionStatus(ageMs) });
+      const nextStatus = getConnectionStatus(ageMs);
+      if (lastStatusRef.current !== nextStatus) {
+        lastStatusRef.current = nextStatus;
+        dispatch({ type: 'SET_CONNECTION', payload: nextStatus });
+      }
     };
 
     updateHealth();

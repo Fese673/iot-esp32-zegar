@@ -63,8 +63,8 @@ function HistoryPanel({ liveRecord }: HistoryPanelProps) {
           <h2>Trend dobowy</h2>
         </div>
         <div className="panel-actions">
-          <button className="primary-btn" id="btnToday">Dziś</button>
-          <button className="ghost-btn" id="btnClear">Wyczyść</button>
+          <button className="primary-btn" id="btnToday" type="button" onClick={() => calendar.selectDate(calendar.state.today)}>Dziś</button>
+          <button className="ghost-btn" id="btnClear" type="button" onClick={() => calendar.selectDate(calendar.state.today)}>Wyczyść</button>
         </div>
       </header>
 

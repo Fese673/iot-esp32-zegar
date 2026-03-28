@@ -1,4 +1,4 @@
-import { useAppContext } from '../../App';
+import { useAppContext } from '../context/AppContext';
 
 function AlertsSection() {
   const { state, dismissAlert } = useAppContext();

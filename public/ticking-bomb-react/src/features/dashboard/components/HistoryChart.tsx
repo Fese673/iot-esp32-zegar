@@ -484,11 +484,8 @@ export default function HistoryChart({ points, loadState, selectedDate }: Histor
     chart.data.datasets[2].data = seriesData.p;
 
     if (initializedDateRef.current === selectedDate && chartWindowRef.current.end > chartWindowRef.current.start) {
-      const scaleOptions = chart.options.scales?.x;
-      if (scaleOptions) {
-        scaleOptions.min = chartWindowRef.current.start;
-        scaleOptions.max = chartWindowRef.current.end;
-      }
+      setChartWindowRef.current(chartWindowRef.current.start, chartWindowRef.current.end);
+      return;
     }
 
     chart.update('none');

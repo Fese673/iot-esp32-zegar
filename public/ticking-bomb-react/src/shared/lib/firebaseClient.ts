@@ -1,38 +1,12 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app';
 import { getDatabase, type Database } from 'firebase/database';
-
-type FirebaseRuntimeConfig = {
-  apiKey?: string;
-  authDomain?: string;
-  projectId?: string;
-  storageBucket?: string;
-  messagingSenderId?: string;
-  appId?: string;
-  databaseURL?: string;
-};
-
-declare global {
-  interface Window {
-    __FIREBASE_CONFIG__?: FirebaseRuntimeConfig;
-    __DEVICE_ID__?: string;
-  }
-}
+import { getRuntimeFirebaseConfig, type FirebaseRuntimeConfig } from './runtimeConfig';
 
 let firebaseApp: FirebaseApp | null = null;
 let firebaseDb: Database | null = null;
 
 function resolveFirebaseConfig(): FirebaseRuntimeConfig {
-  if (typeof window === 'undefined') {
-    return {};
-  }
-
-  const runtimeConfig = window.__FIREBASE_CONFIG__ ?? {};
-  const databaseURL = localStorage.getItem('firebaseDatabaseURL') || runtimeConfig.databaseURL;
-
-  return {
-    ...runtimeConfig,
-    databaseURL,
-  };
+  return getRuntimeFirebaseConfig();
 }
 
 export function getFirebaseApp(): FirebaseApp {

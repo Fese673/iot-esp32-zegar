@@ -1,15 +1,30 @@
 import TopBar from './features/dashboard/components/TopBar';
 import MetaGrid from './features/dashboard/components/MetaGrid';
 import LiveGrid from './features/dashboard/components/LiveGrid';
-import HistoryPanel from './features/dashboard/components/HistoryPanel';
-import PmsSection from './features/pms/components/PmsSection';
 import AlertsSection from './shared/components/AlertsSection';
 import Toast from './shared/components/Toast';
 import Footer from './features/dashboard/components/Footer';
-import { createContext, useCallback, useContext, useEffect, useReducer, useRef, type Dispatch } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { useConnectionHealth } from './features/dashboard/hooks/useConnectionHealth';
 import { useLiveMetrics } from './features/dashboard/hooks/useLiveMetrics';
-import type { AlertItem, ConnectionStatus } from './shared/types';
+import type { AlertItem } from './shared/types';
+import { AppContext, appReducer, initialState, useAppContext, type AppContextValue } from './shared/context/AppContext';
+
+const HistoryPanel = lazy(() => import('./features/dashboard/components/HistoryPanel'));
+const PmsSection = lazy(() => import('./features/pms/components/PmsSection'));
+
+function SectionFallback({ label, title, className }: { label: string; title: string; className?: string }) {
+  return (
+    <section className={className ?? 'panel'} aria-label={label}>
+      <header className="panel-head">
+        <div>
+          <p className="eyebrow">Ładowanie</p>
+          <h2>{title}</h2>
+        </div>
+      </header>
+    </section>
+  );
+}
 
 declare global {
   interface Window {
@@ -17,70 +32,13 @@ declare global {
   }
 }
 
-interface AppState {
-  connectionStatus: ConnectionStatus;
-  motionEnabled: boolean;
-  alerts: AlertItem[];
-  toast: AlertItem | null;
-}
-
-type AppAction =
-  | { type: 'SET_CONNECTION'; payload: ConnectionStatus }
-  | { type: 'TOGGLE_MOTION' }
-  | { type: 'ADD_ALERT'; payload: AlertItem }
-  | { type: 'DISMISS_ALERT'; payload: string }
-  | { type: 'SHOW_TOAST'; payload: AlertItem }
-  | { type: 'HIDE_TOAST' };
-
-interface AppContextValue {
-  state: AppState;
-  dispatch: Dispatch<AppAction>;
-  pushAlert: (alert: Omit<AlertItem, 'id'> & { id?: string }) => string;
-  dismissAlert: (id: string) => void;
-  hideToast: () => void;
-}
-
-const initialState: AppState = {
-  connectionStatus: 'disconnected',
-  motionEnabled: true,
-  alerts: [],
-  toast: null,
-};
-
-const AppContext = createContext<AppContextValue | null>(null);
-
-function appReducer(state: AppState, action: AppAction): AppState {
-  switch (action.type) {
-    case 'SET_CONNECTION':
-      return { ...state, connectionStatus: action.payload };
-    case 'TOGGLE_MOTION':
-      return { ...state, motionEnabled: !state.motionEnabled };
-    case 'ADD_ALERT':
-      return { ...state, alerts: [action.payload, ...state.alerts] };
-    case 'DISMISS_ALERT':
-      return { ...state, alerts: state.alerts.filter((alert) => alert.id !== action.payload) };
-    case 'SHOW_TOAST':
-      return { ...state, toast: action.payload };
-    case 'HIDE_TOAST':
-      return { ...state, toast: null };
-    default:
-      return state;
-  }
-}
-
-export function useAppContext(): AppContextValue {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useAppContext must be used within AppContext.Provider');
-  }
-
-  return context;
-}
-
 function DashboardContent() {
   const { state, dispatch } = useAppContext();
   const liveMetrics = useLiveMetrics();
   const { lastSeen } = useConnectionHealth(liveMetrics.data);
+  const refreshDashboard = useCallback(() => {
+    window.location.reload();
+  }, []);
 
   return (
     <>
@@ -91,6 +49,7 @@ function DashboardContent() {
         <TopBar
           motionEnabled={state.motionEnabled}
           onToggleMotion={() => dispatch({ type: 'TOGGLE_MOTION' })}
+          onRefresh={refreshDashboard}
           connectionStatus={state.connectionStatus}
         />
         <MetaGrid liveTimestamp={liveMetrics.data?.ts} />
@@ -100,8 +59,12 @@ function DashboardContent() {
           connectionStatus={state.connectionStatus}
           lastSeen={lastSeen}
         />
-        <HistoryPanel liveRecord={liveMetrics.data} />
-        <PmsSection />
+        <Suspense fallback={<SectionFallback label="Ładowanie historii danych" title="Historia ładuje się..." />}>
+          <HistoryPanel liveRecord={liveMetrics.data} />
+        </Suspense>
+        <Suspense fallback={<SectionFallback label="Ładowanie sekcji PMS" title="PMS ładuje się..." className="panel pms-section" />}>
+          <PmsSection />
+        </Suspense>
         <AlertsSection />
         <Footer />
       </main>
@@ -189,7 +152,13 @@ function App() {
     document.documentElement.classList.toggle('motion-off', !state.motionEnabled);
   }, [state.motionEnabled]);
 
-  const value: AppContextValue = { state, dispatch, pushAlert, dismissAlert, hideToast };
+  const value = useMemo<AppContextValue>(() => ({
+    state,
+    dispatch,
+    pushAlert,
+    dismissAlert,
+    hideToast,
+  }), [state, dispatch, pushAlert, dismissAlert, hideToast]);
 
   return (
     <AppContext.Provider value={value}>

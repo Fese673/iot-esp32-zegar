@@ -3,12 +3,13 @@
 Ten dokument opisuje aktualną strukturę dwóch widoków wykresów związanych z PMS5003 w aplikacji:
 
 - wykres historii (line chart) — komponent: PmsChart
-- panel live / frakcje (kolumnowy, CSS) — komponent: PmsLivePanel
+- kafelki live PM (CSS) + wykres historii — komponent: PmsHistorySection
 
 **Pliki kluczowe**
 
 - **PmsChart (historia):** [src/features/pms/components/PmsChart.tsx](src/features/pms/components/PmsChart.tsx)
-- **PmsLivePanel (live/frakcje):** [src/features/pms/components/PmsLivePanel.tsx](src/features/pms/components/PmsLivePanel.tsx)
+- **Sekcja PMS (live + historia):** [src/features/pms/components/PmsHistorySection.tsx](src/features/pms/components/PmsHistorySection.tsx)
+- **Kontroler danych PMS:** [src/features/pms/hooks/usePmsData.ts](src/features/pms/hooks/usePmsData.ts)
 - **Funkcje pomocnicze (chart):** [src/features/pms/lib/pmsChartHelpers.ts](src/features/pms/lib/pmsChartHelpers.ts)
 - **Pick raw (A/F):** [src/features/pms/lib/pmsHelpers.ts](src/features/pms/lib/pmsHelpers.ts)
 - **Adapter Firebase:** [src/features/pms/api/pmsAdapter.ts](src/features/pms/api/pmsAdapter.ts)
@@ -18,8 +19,8 @@ Ten dokument opisuje aktualną strukturę dwóch widoków wykresów związanych 
 **1) Przegląd funkcjonalny**
 
 1. PmsChart pokazuje historię pomiarów jako wykres liniowy z trzema seriami: PM1, PM2.5, PM10.
-2. PmsLivePanel to wizualny, kolumnowy panel „frakcji” (nie używa Chart.js) — pokazuje względne udziały PM1/PM2.5/PM10 dla bieżącej próbki.
-3. Źródłem danych jest Firebase: adapter `subscribePmsLive`, `loadPmsHistoryByDay` i fallback w `pmsAdapter.ts`.
+2. PmsHistorySection zawiera kafelki live PM (PM1/PM2.5/PM10) oraz wykres historii; część live nie używa Chart.js.
+3. Źródłem danych jest Firebase: adapter `loadPmsHistoryByDay` + fallback w `pmsAdapter.ts` oraz subskrypcja live w `usePmsLive`.
 
 **2) Struktura danych i mapowanie**
 
@@ -48,20 +49,16 @@ Ten dokument opisuje aktualną strukturę dwóch widoków wykresów związanych 
 
 Głębsze odwołania: [PmsChart.tsx](src/features/pms/components/PmsChart.tsx)
 
-**4) `PmsLivePanel.tsx` — szczegóły techniczne**
+**4) `PmsHistorySection.tsx` (część live) — szczegóły techniczne**
 
-- Nie używa Chart.js — to HTML/CSS + React.
-- `buildRows(liveData)` tworzy trzy wiersze (`pm1`, `pm25`, `pm10`) i oblicza `fill` jako procent względem największej wartości (peak).
-- Progowe zachowania (severity):
-  - `fill >= 78` → `alert`
-  - `fill >= 52` → `warn`
-  - inaczej → `good`
-- Widok zawiera: nagłówek (hero), statystyki, kolumny z wypełnieniem, oraz panel szczegółów (drawer).
-- Źródło danych dla panelu: hook `usePmsLive()` → `subscribePmsLive()` ([usePmsLive.ts](src/features/pms/hooks/usePmsLive.ts), [pmsAdapter.ts](src/features/pms/api/pmsAdapter.ts)).
+- Część live nie używa Chart.js — to HTML/CSS + React.
+- Kafelki live pokazują trzy wartości (`pm1`, `pm25`, `pm10`) na podstawie `extractPmRawLike(liveData)`.
+- Źródło danych dla kafelków: `usePmsData()` (który łączy `usePmsHistory()` i `usePmsLive()`).
+- Etykieta stanu live (`LIVE` / `Brak danych` / `Czekam na dane`) wynika z `liveStatus`.
 
 **5) Adapter i pobieranie danych**
 
-- `subscribePmsLive(deviceId, callback)` subskrybuje `devices/{id}/latest` i normuje rekord (`normalizePmsRecord`).
+- `usePmsLive()` subskrybuje `devices/{id}/latest` i normalizuje timestamp live do epoch ms.
 - `loadPmsHistoryByDay(deviceId, date)` czyta `historyByDay/{date}`; fallback `loadPmsHistoryFallback` odczytuje ostatnie rekordy i filtruje zakres.
 - Normalizacja:
   - `normalizePmsRaw` konwertuje wartości na number i odrzuca niepoprawne.
@@ -84,7 +81,7 @@ Zobacz: [pmsAdapter.ts](src/features/pms/api/pmsAdapter.ts)
 **8) Gdzie zmieniać rzeczy**
 
 - Kolory: zmienne CSS (`--pm1`, `--pm25`, `--pm10`, `--panel-2`) użyte przez `readChartPalette()` w `PmsChart.tsx`.
-- Progi i etykiety live: `severityFor` / `severityLabel` w `PmsLivePanel.tsx`.
+- Kafelki live PM i etykiety: `PmsHistorySection.tsx` + `extractPmRawLike`.
 - Opcje wykresu (tension, borderWidth, tooltip callbacks): edytuj `createDataset()` i `createChart()` w `PmsChart.tsx`.
 
 ---
@@ -96,7 +93,7 @@ Plik utworzony w: `docs/pms-charts-structure.md` — jeśli chcesz, mogę dopisa
 - Problemy z aktualną implementacją:
   - `PmsChart` łączy odpowiedzialność za renderowanie, zarządzanie oknem czasowym i obsługę interakcji pointer/wheel. To utrudnia testowanie i ponowne użycie.
   - Część logiki stanu (np. inicjalizacja okna, pan/zoom) jest trwale spięta z cyklem życia komponentu i DOM (event listeners), co utrudnia przenoszenie do innych widoków.
-  - `PmsLivePanel` i `PmsChart` korzystają z tej samej źródłowej struktury danych, ale nie dzielą wspólnego API do zarządzania widokiem czasu — możliwe duplikacje i niespójności.
+  - Kafelki live i `PmsChart` korzystają z tej samej źródłowej struktury danych, ale wymagają spójnego API (`usePmsData`) dla uniknięcia duplikacji i niespójności.
   - Trudności w debugowaniu: brak wyraźnego API do ustawiania window/zoom, testy integracyjne muszą inicjalizować Chart.js oraz symulować pointer events.
 
 - Czy rozdzielić wykresy? Rekomendacja:
@@ -128,6 +125,7 @@ Aktualizacja gotowa — jeśli chcesz, wprowadzę teraz `useChartWindow` jako pi
 **10) Plan etapowy (proponowany, etapowy)**
 
 - **Cel:** Rozdzielić odpowiedzialności renderowania, zarządzania oknem czasowym i obsługi interakcji, zachowując kompatybilność i minimalne ryzyko regresji.
+- **Stan dokumentu:** aktualizacja techniczna na dzień 2026-03-28; statusy faz poniżej opisują zamknięty refaktor i mają charakter historyczny.
 
 - **Faza 1 — Rekonesans i zabezpieczenia (1-2 dni)**
   - Przejrzeć i ustabilizować helpery: `pmsChartHelpers.ts`, `pmsHelpers.ts` (unit tests).

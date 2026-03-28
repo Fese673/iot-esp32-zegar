@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { clampWindow, type WindowRange } from '../../../shared/lib/chartHelpers';
+import { type WindowRange } from '../../../shared/lib/chartHelpers';
 import { toDateKey } from '../../../shared/lib/dateHelpers';
 import type { LoadState } from '../../../shared/types';
 import {
@@ -7,6 +7,7 @@ import {
   sortPmsChartPoints,
   type PmsChartPoint,
 } from '../lib/pmsChartHelpers';
+import { buildFollowWindow, shouldAutoFollowLatest } from '../lib/pmsFollowWindow';
 import PmsChart, { type PmsCanvasElement, type PmsChartInstance, type PmsPlotPoint, type PmsSeriesData } from './PmsChart';
 import { useChartWindow } from '../hooks/useChartWindow';
 import { useChartInteractions } from '../hooks/useChartInteractions';
@@ -52,28 +53,8 @@ function computeRightPadding(windowMs: number): number {
   return Math.min(padding, RIGHT_PADDING_MAX_MS);
 }
 
-export function shouldAutoFollowLatest(windowRange: WindowRange | null, latestPoint: number, paddingMs: number): boolean {
-  if (!windowRange || !Number.isFinite(latestPoint) || latestPoint <= 0) {
-    return false;
-  }
-
-  return latestPoint >= windowRange.end - paddingMs;
-}
-
-export function buildFollowWindow(
-  windowRange: WindowRange,
-  bounds: WindowRange,
-  latestPoint: number,
-  minWindowMs: number,
-  paddingMs: number,
-): WindowRange {
-  const width = Math.max(minWindowMs, windowRange.end - windowRange.start);
-  const targetEnd = latestPoint + paddingMs;
-  return clampWindow(targetEnd - width, targetEnd, bounds, minWindowMs);
-}
-
 function getSeriesData(points: PmsChartPoint[]): PmsSeriesData {
-  const grouped = groupPmsChartPointsBySeries(sortPmsChartPoints(points));
+  const grouped = groupPmsChartPointsBySeries(points);
   return {
     pm1: toPlotPoints(grouped.pm1),
     pm25: toPlotPoints(grouped.pm25),
