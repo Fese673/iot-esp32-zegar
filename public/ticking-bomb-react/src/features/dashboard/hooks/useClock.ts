@@ -20,6 +20,7 @@ export function useClock(ts: number | undefined): ClockState {
 
   useEffect(() => {
     let baseMs = Date.now();
+    const CLOCK_UPDATE_MS = 50; // keep the milli display responsive (≈20fps) without overloading render.
 
     const syncTimeFromDevice = () => {
       if (ts == null) {
@@ -57,7 +58,7 @@ export function useClock(ts: number | undefined): ClockState {
         ...currentState,
         displayTime: formatClock(baseMs + performance.now()),
       }));
-    }, 1000);
+    }, CLOCK_UPDATE_MS);
 
     return () => {
       window.clearInterval(intervalId);

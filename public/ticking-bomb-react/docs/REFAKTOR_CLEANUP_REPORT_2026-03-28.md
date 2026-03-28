@@ -496,6 +496,32 @@ Szacowany effort: M
 
 ---
 
+## F-12
+Stopień: S3 Średni
+Obszar: Dokładny czas systemowy (MetaGrid/useClock)
+
+Co:
+- `useClock` używało `setInterval(..., 1000)` do aktualizacji `displayTime`.
+- `formatClock` renderuje milisekundy, więc odświeżanie co 1s powodowało „zastyganie” MS i skok co sekundę.
+- zgłoszone: `14:33:56.013`, RTT ~0 ms i wrażenie powolnego licznika.
+
+Gdzie:
+- src/features/dashboard/hooks/useClock.ts
+- src/features/dashboard/components/MetaGrid.tsx
+
+Ryzyko:
+- użytkownik traci zaufanie do wskazań zegara NTP;
+- błędna percepcja latency i precyzji systemowego czasu.
+
+Rekomendacja:
+- zmienić interwał renderu `displayTime` na 50 ms (≈20 FPS);
+- pozostawić mechanizm syncowania czasu przez `ts + performance.now()`;
+- dodać regresyjny test hooka.
+
+Szacowany effort: S
+
+---
+
 ## 6C. Aktualizacja wdrożenia findingów S3
 
 Status: wykonane i zweryfikowane narzędziowo.

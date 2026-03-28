@@ -59,8 +59,8 @@ function HistoryPanel({ liveRecord }: HistoryPanelProps) {
     <section className="panel" aria-label="Historia danych">
       <header className="panel-head">
         <div>
-          <p className="eyebrow">Historia</p>
-          <h2>Trend dobowy</h2>
+          <p className="eyebrow">WYKRES 1</p>
+          <h2>Parametry środowiskowe</h2>
         </div>
         <div className="panel-actions">
           <button className="primary-btn" id="btnToday" type="button" onClick={() => calendar.selectDate(calendar.state.today)}>Dziś</button>

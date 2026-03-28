@@ -46,8 +46,8 @@ export default function PmsHistorySection() {
       <header className="panel-head">
         <div>
           <p className="eyebrow">WYKRES 2</p>
-          <h3>Drugi wykres dla samych przetworzonych danych PM</h3>
-          <p>Wybierz dzień, aby zobaczyć historię PM i dołączyć dzisiejszy live feed, gdy patrzysz na dziś. NIE usuwać tej sekcji</p>
+          <h3>Zanieczyszczenie pyłowe</h3>
+          <p>Wybierz dzień, aby zobaczyć historyczne pomiary PM; dla dnia dzisiejszego wykres obejmuje także dane bieżące.</p>
         </div>
         <div className="panel-actions">
           <button className="primary-btn" id="pmsBtnToday" type="button" onClick={() => calendar.selectDate(calendar.state.today)}>Dziś</button>
