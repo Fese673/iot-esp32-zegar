@@ -5,7 +5,7 @@ import { appendUniquePmsChartPoint, rawToPmsChartPoints } from '../lib/pmsChartH
 import { usePmsHistory } from '../hooks/usePmsHistory';
 import { usePmsLive } from '../hooks/usePmsLive';
 import PmsLivePanel from './PmsLivePanel';
-import PmsChart from './PmsChart';
+import PmsChartController from './PmsChartController';
 
 function formatPmsValue(value: number | null | undefined): string {
   if (!Number.isFinite(Number(value))) {
@@ -20,22 +20,27 @@ function PmsSection() {
   const history = usePmsHistory(calendar.state.selectedDate);
   const pmsLive = usePmsLive();
   const liveData = pmsLive.status === 'loaded' ? pmsLive.data : null;
+  const isSelectedToday = calendar.state.selectedDate === calendar.state.today;
   const liveReady = Boolean(liveData);
   const pm1Value = liveReady ? formatPmsValue(liveData?.pm1) : '--';
   const pm25Value = liveReady ? formatPmsValue(liveData?.pm25) : '--';
   const pm10Value = liveReady ? formatPmsValue(liveData?.pm10) : '--';
   const liveMeta = pmsLive.status === 'loaded' ? 'LIVE' : pmsLive.status === 'empty' ? 'Brak danych' : 'Czekam na dane';
+  const liveChartPoints = useMemo(() => {
+    if (!isSelectedToday || !liveData || pmsLive.timestamp == null) {
+      return [];
+    }
+
+    return rawToPmsChartPoints(liveData, pmsLive.timestamp);
+  }, [isSelectedToday, liveData, pmsLive.timestamp]);
   const chartPoints = useMemo(() => {
-    if (history.loadState !== 'loaded') {
+    if (!liveChartPoints.length) {
       return history.points;
     }
 
-    if (calendar.state.selectedDate !== calendar.state.today || !liveData || pmsLive.timestamp == null) {
-      return history.points;
-    }
-
-    return rawToPmsChartPoints(liveData, pmsLive.timestamp).reduce(appendUniquePmsChartPoint, history.points);
-  }, [calendar.state.selectedDate, calendar.state.today, history.loadState, history.points, liveData, pmsLive.timestamp]);
+    return liveChartPoints.reduce(appendUniquePmsChartPoint, history.points);
+  }, [history.points, liveChartPoints]);
+  const chartLoadState = chartPoints.length > 0 ? 'loaded' : (isSelectedToday && liveChartPoints.length > 0 ? 'loaded' : history.loadState);
 
   const densityLabel = history.loadState === 'loaded' || history.loadState === 'empty'
     ? history.dataDensity === 0
@@ -131,7 +136,7 @@ function PmsSection() {
                 </div>
                 <span className="chip" id="pmsDataDensity">{densityLabel}</span>
               </header>
-              <PmsChart points={chartPoints} loadState={history.loadState} selectedDate={calendar.state.selectedDate} />
+              <PmsChartController points={chartPoints} loadState={chartLoadState} selectedDate={calendar.state.selectedDate} />
             </div>
 
             <Calendar

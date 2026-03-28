@@ -6,7 +6,7 @@ import PmsSection from './features/pms/components/PmsSection';
 import AlertsSection from './shared/components/AlertsSection';
 import Toast from './shared/components/Toast';
 import Footer from './features/dashboard/components/Footer';
-import { createContext, useCallback, useContext, useEffect, useReducer, type Dispatch } from 'react';
+import { createContext, useCallback, useContext, useEffect, useReducer, useRef, type Dispatch } from 'react';
 import { useConnectionHealth } from './features/dashboard/hooks/useConnectionHealth';
 import { useLiveMetrics } from './features/dashboard/hooks/useLiveMetrics';
 import type { AlertItem, ConnectionStatus } from './shared/types';
@@ -113,6 +113,7 @@ function DashboardContent() {
 
 function App() {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const hasReportedFirebaseErrorRef = useRef(false);
 
   const pushAlert = useCallback((alert: Omit<AlertItem, 'id'> & { id?: string }) => {
     const id = alert.id ?? (globalThis.crypto?.randomUUID?.() ?? `alert-${Date.now()}-${Math.random().toString(16).slice(2)}`);
@@ -141,6 +142,46 @@ function App() {
 
     return () => {
       delete window.__notifyAlert;
+    };
+  }, [pushAlert]);
+
+  useEffect(() => {
+    const reportFirebaseError = (rawMessage: string) => {
+      if (hasReportedFirebaseErrorRef.current) {
+        return;
+      }
+
+      const message = rawMessage.toLowerCase();
+      if (!message.includes('firebase') && !message.includes('permission denied') && !message.includes('database url')) {
+        return;
+      }
+
+      hasReportedFirebaseErrorRef.current = true;
+      pushAlert({
+        level: 'error',
+        message: message.includes('permission denied')
+          ? 'Brak dostępu do Firebase — sprawdź reguły bazy.'
+          : 'Błąd Firebase — sprawdź konfigurację bazy.',
+        autoDismiss: false,
+      });
+    };
+
+    const handleError = (event: ErrorEvent) => {
+      reportFirebaseError(event.message || event.error?.message || '');
+    };
+
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      const message = reason instanceof Error ? reason.message : String(reason || '');
+      reportFirebaseError(message);
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleRejection);
     };
   }, [pushAlert]);
 

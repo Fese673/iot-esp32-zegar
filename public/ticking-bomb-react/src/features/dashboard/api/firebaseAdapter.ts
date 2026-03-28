@@ -1,5 +1,5 @@
 import { get, limitToLast, onValue, query, ref } from 'firebase/database';
-import { db } from '../../../shared/lib/firebaseClient';
+import { getFirebaseDb } from '../../../shared/lib/firebaseClient';
 import { dateRangeForDay, isDateKeyInRange } from '../../../shared/lib/dateHelpers';
 import { toEpochMs } from '../../../shared/lib/timeHelpers';
 import type { HistoryRecord, LiveRecord } from '../../../shared/types';
@@ -62,26 +62,31 @@ export function subscribeLiveMetrics(
   callback: (data: LiveRecord) => void,
   onError?: (error: Error) => void,
 ): () => void {
-  const liveRef = ref(db, `${getDevicePath(deviceId)}/latest`);
+  try {
+    const liveRef = ref(getFirebaseDb(), `${getDevicePath(deviceId)}/latest`);
 
-  const unsubscribe = onValue(liveRef, (snapshot) => {
-    const record = normalizeLiveRecord(snapshot.val());
-    if (record) {
-      callback(record);
-    }
-  }, onError);
+    const unsubscribe = onValue(liveRef, (snapshot) => {
+      const record = normalizeLiveRecord(snapshot.val());
+      if (record) {
+        callback(record);
+      }
+    }, onError);
 
-  return () => unsubscribe();
+    return () => unsubscribe();
+  } catch (error) {
+    onError?.(error instanceof Error ? error : new Error(String(error)));
+    return () => undefined;
+  }
 }
 
 export async function loadHistoryByDay(deviceId: string, date: string): Promise<HistoryRecord[]> {
-  const dayRef = ref(db, `${getDevicePath(deviceId)}/historyByDay/${date}`);
+  const dayRef = ref(getFirebaseDb(), `${getDevicePath(deviceId)}/historyByDay/${date}`);
   const snapshot = await get(dayRef);
   return snapshotToHistoryRecords(snapshot.val());
 }
 
 export async function loadHistoryFallback(deviceId: string, date: string): Promise<HistoryRecord[]> {
-  const historyRef = ref(db, `${getDevicePath(deviceId)}/history`);
+  const historyRef = ref(getFirebaseDb(), `${getDevicePath(deviceId)}/history`);
   const snapshot = await get(query(historyRef, limitToLast(20_000)));
   const records = snapshotToHistoryRecords(snapshot.val());
   const range = dateRangeForDay(date);

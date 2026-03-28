@@ -4,6 +4,8 @@ interface TopBarProps {
   connectionStatus: 'connected' | 'reconnecting' | 'disconnected';
 }
 
+const TITLE_TEXT = 'T I C K I N G • B O M B';
+
 function TopBar({ motionEnabled, onToggleMotion, connectionStatus }: TopBarProps) {
   const statusLabel =
     connectionStatus === 'connected'
@@ -34,7 +36,18 @@ function TopBar({ motionEnabled, onToggleMotion, connectionStatus }: TopBarProps
 
       <div className="topbar-center" aria-label="Tytuł Projektu">
         <div className="title-box">
-          <h1 className="title-text">T I C K I N G • B O M B</h1>
+          <h1 className="title-text" aria-label="TICKING BOMB" data-title={TITLE_TEXT}>
+            {Array.from(TITLE_TEXT).map((character, index) => (
+              <span
+                key={`${character}-${index}`}
+                className="title-letter animate"
+                style={{ animationDelay: `${index * 80}ms` }}
+                aria-hidden="true"
+              >
+                {character === ' ' ? '\u00a0' : character}
+              </span>
+            ))}
+          </h1>
         </div>
       </div>
 

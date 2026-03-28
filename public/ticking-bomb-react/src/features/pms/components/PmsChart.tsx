@@ -1,25 +1,23 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Chart, registerables, type ChartDataset, type TooltipItem } from 'chart.js';
-import { clampWindow } from '../../../shared/lib/chartHelpers';
-import { sortPmsChartPoints, groupPmsChartPointsBySeries, type PmsChartPoint, type PmsSeriesKey } from '../lib/pmsChartHelpers';
+import type { RefObject } from 'react';
+import type { WindowRange } from '../../../shared/lib/chartHelpers';
+import type { PmsSeriesKey } from '../lib/pmsChartHelpers';
 import type { LoadState } from '../../../shared/types';
 
 Chart.register(...registerables);
 
-type PlotPoint = {
+export type PmsPlotPoint = {
   x: number;
   y: number;
 };
 
-type PmsChartInstance = Chart<'line', PlotPoint[], number>;
+export type PmsSeriesData = Record<PmsSeriesKey, PmsPlotPoint[]>;
 
-interface PmsCanvasElement extends HTMLCanvasElement {
+export type PmsChartInstance = Chart<'line', PmsPlotPoint[], number>;
+
+export interface PmsCanvasElement extends HTMLCanvasElement {
   __pmsChart?: PmsChartInstance;
-}
-
-interface ChartBounds {
-  start: number;
-  end: number;
 }
 
 interface ChartPalette {
@@ -34,17 +32,15 @@ interface ChartPalette {
 }
 
 interface PmsChartProps {
-  points: PmsChartPoint[];
+  seriesData: PmsSeriesData;
+  windowRange: WindowRange | null;
   loadState: LoadState;
-  selectedDate: string;
+  frameRef: RefObject<HTMLDivElement | null>;
+  canvasRef: RefObject<PmsCanvasElement | null>;
+  onChartReady?: (chart: PmsChartInstance | null) => void;
+  onPanLeft: () => void;
+  onPanRight: () => void;
 }
-
-const MIN_WINDOW_MS = 60_000;
-const REALTIME_WINDOW_MS = 10 * 60_000;
-const RIGHT_PADDING_RATIO = 0.08;
-const RIGHT_PADDING_MAX_MS = 60_000;
-const INITIAL_ZOOM_MS = MIN_WINDOW_MS;
-const INITIAL_PAN_STEPS = 4;
 
 function readCssVar(name: string, fallback: string): string {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name);
@@ -87,11 +83,6 @@ function readChartPalette(): ChartPalette {
   };
 }
 
-function computeRightPadding(windowMs: number): number {
-  const padding = Math.round(windowMs * RIGHT_PADDING_RATIO);
-  return Math.min(padding, RIGHT_PADDING_MAX_MS);
-}
-
 function formatAxisTime(value: number): string {
   return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
@@ -108,10 +99,15 @@ function formatTooltipLabel(datasetIndex: number, value: number): string {
   return `PM 10.0: ${value.toFixed(1)} µg/m³`;
 }
 
-function createDataset(label: string, color: string, extra: Partial<ChartDataset<'line', PlotPoint[]>> = {}): ChartDataset<'line', PlotPoint[]> {
+function createDataset(
+  label: string,
+  color: string,
+  data: PmsPlotPoint[] = [],
+  extra: Partial<ChartDataset<'line', PmsPlotPoint[]>> = {},
+): ChartDataset<'line', PmsPlotPoint[]> {
   return {
     label,
-    data: [],
+    data,
     borderColor: color,
     backgroundColor: withAlpha(color, 0.08),
     tension: extra.tension ?? 0.25,
@@ -125,14 +121,14 @@ function createDataset(label: string, color: string, extra: Partial<ChartDataset
   };
 }
 
-function createChart(canvas: PmsCanvasElement, palette: ChartPalette): PmsChartInstance {
-  return new Chart<'line', PlotPoint[], number>(canvas, {
+function createChart(canvas: PmsCanvasElement, palette: ChartPalette, seriesData: PmsSeriesData): PmsChartInstance {
+  return new Chart<'line', PmsPlotPoint[], number>(canvas, {
     type: 'line',
     data: {
       datasets: [
-        createDataset('PM 1.0 (µg/m³)', palette.pm1),
-        createDataset('PM 2.5 (µg/m³)', palette.pm25),
-        createDataset('PM 10.0 (µg/m³)', palette.pm10, { borderDash: [4, 4], tension: 0.1 }),
+        createDataset('PM 1.0 (µg/m³)', palette.pm1, seriesData.pm1),
+        createDataset('PM 2.5 (µg/m³)', palette.pm25, seriesData.pm25),
+        createDataset('PM 10.0 (µg/m³)', palette.pm10, seriesData.pm10, { borderDash: [4, 4], tension: 0.1 }),
       ],
     },
     options: {
@@ -195,257 +191,53 @@ function createChart(canvas: PmsCanvasElement, palette: ChartPalette): PmsChartI
   });
 }
 
-function toPlotPoints(points: PmsChartPoint[]): PlotPoint[] {
-  return points.map((point) => ({ x: point.x, y: point.y }));
-}
-
-function getBoundsFromPoints(points: PmsChartPoint[]): ChartBounds | null {
-  if (!points.length) {
-    return null;
+function applyWindowToChart(chart: PmsChartInstance, windowRange: WindowRange | null): void {
+  const xScale = chart.options.scales?.x as { min?: number; max?: number } | undefined;
+  if (!xScale) {
+    return;
   }
 
-  const firstPoint = points[0];
-  const startDate = new Date(firstPoint.x);
-  const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime();
-
-  return {
-    start,
-    end: start + 24 * 60 * 60 * 1000,
-  };
+  xScale.min = windowRange?.start;
+  xScale.max = windowRange?.end;
 }
 
-function getLatestPoint(points: PmsChartPoint[]): number {
-  return points.reduce((latest, point) => Math.max(latest, point.x), 0);
-}
-
-function getSeriesData(points: PmsChartPoint[]): Record<PmsSeriesKey, PlotPoint[]> {
-  const grouped = groupPmsChartPointsBySeries(sortPmsChartPoints(points));
-  return {
-    pm1: toPlotPoints(grouped.pm1),
-    pm25: toPlotPoints(grouped.pm25),
-    pm10: toPlotPoints(grouped.pm10),
-  };
-}
-
-export default function PmsChart({ points, loadState, selectedDate }: PmsChartProps) {
-  const canvasRef = useRef<PmsCanvasElement | null>(null);
-  const frameRef = useRef<HTMLDivElement | null>(null);
+export default function PmsChart({
+  seriesData,
+  windowRange,
+  loadState,
+  frameRef,
+  canvasRef,
+  onChartReady,
+  onPanLeft,
+  onPanRight,
+}: PmsChartProps) {
   const chartRef = useRef<PmsChartInstance | null>(null);
-  const panChartRef = useRef<(direction: number) => void>(() => undefined);
-  const setChartWindowRef = useRef<(start: number, end: number) => void>(() => undefined);
-  const lastSelectedDateRef = useRef<string | null>(null);
-  const initializedDateRef = useRef<string | null>(null);
-  const chartWindowRef = useRef<ChartBounds>({ start: 0, end: 0 });
-  const boundsRef = useRef<ChartBounds | null>(null);
-  const sortedPoints = useMemo(() => sortPmsChartPoints(points), [points]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const frame = frameRef.current;
 
-    if (!canvas || !frame) {
+    if (!canvas) {
       return undefined;
     }
-
-    const chartCanvas = canvas;
-    const chartFrame = frame;
 
     if (chartRef.current) {
       return undefined;
     }
 
     const palette = readChartPalette();
-    const chart = createChart(canvas, palette);
-    const activePointers = new Map<number, { x: number; y: number }>();
-    let pinchStartDist: number | null = null;
-    let pinchStartWidth: number | null = null;
-    let pinchStartCenterValue: number | null = null;
-    let panLastValue: number | null = null;
+    const chart = createChart(canvas, palette, seriesData);
 
     chartRef.current = chart;
-    chartCanvas.__pmsChart = chart;
-    chartCanvas.style.touchAction = 'none';
-
-    function getScaleX() {
-      return chartRef.current?.scales.x ?? null;
-    }
-
-    function updateChartWindow(start: number, end: number) {
-      const bounds = boundsRef.current;
-      const activeChart = chartRef.current;
-      if (!bounds || !activeChart) {
-        return;
-      }
-
-      const window = clampWindow(start, end, bounds, MIN_WINDOW_MS);
-      chartWindowRef.current = window;
-
-      const scaleOptions = activeChart.options.scales?.x;
-      if (scaleOptions) {
-        scaleOptions.min = window.start;
-        scaleOptions.max = window.end;
-      }
-      activeChart.update('none');
-    }
-
-    function panChart(direction: number) {
-      const bounds = boundsRef.current;
-      if (!bounds || chartWindowRef.current.end <= chartWindowRef.current.start) {
-        return;
-      }
-
-      const range = chartWindowRef.current.end - chartWindowRef.current.start;
-      const shift = Math.min(range * 0.25, 60 * 60 * 1000);
-      updateChartWindow(chartWindowRef.current.start + direction * shift, chartWindowRef.current.end + direction * shift);
-    }
-
-    function zoomChart(factor: number) {
-      const bounds = boundsRef.current;
-      if (!bounds || chartWindowRef.current.end <= chartWindowRef.current.start) {
-        return;
-      }
-
-      const width = chartWindowRef.current.end - chartWindowRef.current.start;
-      let nextWidth = width * factor;
-      nextWidth = Math.min(nextWidth, bounds.end - bounds.start);
-      nextWidth = Math.max(nextWidth, MIN_WINDOW_MS);
-      const center = (chartWindowRef.current.end + chartWindowRef.current.start) / 2;
-      updateChartWindow(center - nextWidth / 2, center + nextWidth / 2);
-    }
-
-    function valueAtClientX(clientX: number): number | null {
-      const scale = getScaleX();
-      if (!scale) {
-        return null;
-      }
-
-      const rect = chartCanvas.getBoundingClientRect();
-      const pixel = clientX - rect.left;
-      return scale.getValueForPixel(pixel) ?? null;
-    }
-
-    function pointerDistance(first: { x: number; y: number }, second: { x: number; y: number }): number {
-      return Math.hypot(first.x - second.x, first.y - second.y);
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      if (!boundsRef.current) {
-        return;
-      }
-
-      chartCanvas.setPointerCapture?.(event.pointerId);
-      activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-
-      if (activePointers.size === 1) {
-        panLastValue = valueAtClientX(event.clientX);
-        pinchStartDist = null;
-        pinchStartWidth = null;
-        pinchStartCenterValue = null;
-      } else if (activePointers.size === 2) {
-        const pointsArray = Array.from(activePointers.values());
-        pinchStartDist = pointerDistance(pointsArray[0], pointsArray[1]);
-        pinchStartWidth = chartWindowRef.current.end - chartWindowRef.current.start;
-        const centerX = (pointsArray[0].x + pointsArray[1].x) / 2;
-        pinchStartCenterValue = valueAtClientX(centerX);
-        panLastValue = null;
-      }
-    }
-
-    function handlePointerMove(event: PointerEvent) {
-      if (!boundsRef.current || !activePointers.has(event.pointerId)) {
-        return;
-      }
-
-      activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-
-      if (activePointers.size === 1 && panLastValue != null) {
-        const currentValue = valueAtClientX(event.clientX);
-        if (currentValue == null) {
-          return;
-        }
-
-        const delta = currentValue - panLastValue;
-        if (delta !== 0) {
-          updateChartWindow(chartWindowRef.current.start - delta, chartWindowRef.current.end - delta);
-          panLastValue = currentValue;
-        }
-      } else if (activePointers.size === 2 && pinchStartDist && pinchStartWidth && pinchStartCenterValue != null) {
-        const pointsArray = Array.from(activePointers.values());
-        const distance = pointerDistance(pointsArray[0], pointsArray[1]);
-        if (distance <= 0) {
-          return;
-        }
-
-        const ratio = distance / pinchStartDist;
-        const bounds = boundsRef.current;
-        const nextWidth = Math.max(MIN_WINDOW_MS, Math.min(pinchStartWidth / ratio, (bounds?.end ?? 0) - (bounds?.start ?? 0)));
-        const center = pinchStartCenterValue;
-        updateChartWindow(center - nextWidth / 2, center + nextWidth / 2);
-      }
-    }
-
-    function handlePointerUp(event: PointerEvent) {
-      activePointers.delete(event.pointerId);
-
-      if (activePointers.size === 1) {
-        const remaining = Array.from(activePointers.values())[0];
-        panLastValue = valueAtClientX(remaining.x);
-        pinchStartDist = null;
-        pinchStartWidth = null;
-        pinchStartCenterValue = null;
-      } else {
-        panLastValue = null;
-        pinchStartDist = null;
-        pinchStartWidth = null;
-        pinchStartCenterValue = null;
-      }
-    }
-
-    function handleChartWheel(event: WheelEvent) {
-      const isHorizontalPan = Math.abs(event.deltaX) > Math.abs(event.deltaY) && Math.abs(event.deltaX) > 0;
-      const isZoomGesture = event.ctrlKey || event.metaKey;
-
-      if (!isHorizontalPan && !isZoomGesture) {
-        return;
-      }
-
-      event.preventDefault();
-
-      if (isHorizontalPan) {
-        panChart(event.deltaX > 0 ? 1 : -1);
-        return;
-      }
-
-      zoomChart(event.deltaY < 0 ? 0.8 : 1.25);
-    }
-
-    panChartRef.current = panChart;
-    setChartWindowRef.current = updateChartWindow;
-
-    frame.addEventListener('wheel', handleChartWheel, { passive: false });
-    chartCanvas.addEventListener('pointerdown', handlePointerDown);
-    chartCanvas.addEventListener('pointermove', handlePointerMove);
-    const pointerEventNames: Array<'pointerup' | 'pointercancel' | 'pointerleave' | 'pointerout'> = ['pointerup', 'pointercancel', 'pointerleave', 'pointerout'];
-    const pointerEventListener = handlePointerUp as EventListener;
-    pointerEventNames.forEach((type) => {
-      chartCanvas.addEventListener(type, pointerEventListener);
-    });
+    canvas.__pmsChart = chart;
+    onChartReady?.(chart);
 
     return () => {
-      chartFrame.removeEventListener('wheel', handleChartWheel);
-      chartCanvas.removeEventListener('pointerdown', handlePointerDown);
-      chartCanvas.removeEventListener('pointermove', handlePointerMove);
-      pointerEventNames.forEach((type) => {
-        chartCanvas.removeEventListener(type, pointerEventListener);
-      });
-
-      panChartRef.current = () => undefined;
-      setChartWindowRef.current = () => undefined;
       chart.destroy();
       chartRef.current = null;
-      delete chartCanvas.__pmsChart;
+      onChartReady?.(null);
+      delete canvas.__pmsChart;
     };
-  }, []);
+  }, [canvasRef, onChartReady]);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -453,20 +245,13 @@ export default function PmsChart({ points, loadState, selectedDate }: PmsChartPr
       return;
     }
 
-    const seriesData = getSeriesData(sortedPoints);
-    const bounds = getBoundsFromPoints(sortedPoints);
-    boundsRef.current = bounds;
+    const hasSeriesData = seriesData.pm1.length > 0 || seriesData.pm25.length > 0 || seriesData.pm10.length > 0;
 
-    const selectedDateChanged = lastSelectedDateRef.current !== selectedDate;
-    if (selectedDateChanged) {
-      initializedDateRef.current = null;
-      lastSelectedDateRef.current = selectedDate;
-    }
-
-    if (loadState !== 'loaded' || sortedPoints.length === 0 || !bounds) {
+    if (loadState !== 'loaded' && !hasSeriesData) {
       chart.data.datasets[0].data = [];
       chart.data.datasets[1].data = [];
       chart.data.datasets[2].data = [];
+      applyWindowToChart(chart, null);
       chart.update('none');
       return;
     }
@@ -474,31 +259,10 @@ export default function PmsChart({ points, loadState, selectedDate }: PmsChartPr
     chart.data.datasets[0].data = seriesData.pm1;
     chart.data.datasets[1].data = seriesData.pm25;
     chart.data.datasets[2].data = seriesData.pm10;
-
-    if (initializedDateRef.current === selectedDate && chartWindowRef.current.end > chartWindowRef.current.start) {
-      const scaleOptions = chart.options.scales?.x;
-      if (scaleOptions) {
-        scaleOptions.min = chartWindowRef.current.start;
-        scaleOptions.max = chartWindowRef.current.end;
-      }
-    }
+    applyWindowToChart(chart, windowRange);
 
     chart.update('none');
-
-    if (initializedDateRef.current !== selectedDate) {
-      const latest = getLatestPoint(sortedPoints);
-      const pad = computeRightPadding(REALTIME_WINDOW_MS);
-      const end = Math.max(bounds.start + MIN_WINDOW_MS, latest - pad);
-      const start = Math.max(bounds.start, end - INITIAL_ZOOM_MS);
-      setChartWindowRef.current(start, end);
-
-      for (let index = 0; index < INITIAL_PAN_STEPS; index += 1) {
-        panChartRef.current(1);
-      }
-
-      initializedDateRef.current = selectedDate;
-    }
-  }, [loadState, selectedDate, sortedPoints]);
+  }, [loadState, seriesData, windowRange]);
 
   const showLoading = loadState === 'loading';
   const showNote = loadState === 'empty';
@@ -511,8 +275,8 @@ export default function PmsChart({ points, loadState, selectedDate }: PmsChartPr
       <div className="chart-overlay" id="pmsChartNote" hidden={!showNote}>Brak danych dla tego dnia.</div>
       <div className="chart-overlay error" id="pmsChartError" hidden={!showError}>Błąd pobierania danych z Firebase.</div>
       <nav className="chart-controls" aria-hidden="true">
-        <button type="button" className="chart-control" data-pms-pan="-1" aria-label="Przesuń wykres w lewo" onClick={() => panChartRef.current(-1)}>◀</button>
-        <button type="button" className="chart-control" data-pms-pan="1" aria-label="Przesuń wykres w prawo" onClick={() => panChartRef.current(1)}>▶</button>
+        <button type="button" className="chart-control" data-pms-pan="-1" aria-label="Przesuń wykres w lewo" onClick={onPanLeft}>◀</button>
+        <button type="button" className="chart-control" data-pms-pan="1" aria-label="Przesuń wykres w prawo" onClick={onPanRight}>▶</button>
       </nav>
     </div>
   );

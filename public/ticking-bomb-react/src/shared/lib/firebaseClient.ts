@@ -56,5 +56,3 @@ export function getFirebaseDb(): Database {
 
   return firebaseDb;
 }
-
-export const db = getFirebaseDb();

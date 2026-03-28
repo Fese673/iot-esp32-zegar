@@ -1186,6 +1186,10 @@ SCENARIUSZ 10: Opóźnienie synchronizacji czasu
 
 Wszystkie 10 scenariuszy: pass.
 
+### Status realizacji
+
+Etap zakończony. Scenariusze 1, 2, 4, 5, 6, 8 i 9 zostały potwierdzone w browserze, scenariusz 7 przez testy jednostkowe helpera `pickPmsRaw`, a scenariusz 3 przez in-app alert po błędzie Firebase. Zasymulowano też przejście z fallbacku lokalnego do czasu urządzenia zgodnie z logiką clocka.
+
 ---
 
 ## Etap 21: Deploy staging i porównanie wizualne
@@ -1196,14 +1200,14 @@ Ostateczna weryfikacja przed podmienieniem produkcji.
 
 ### Co agent ma zrobić
 
-1. Zdeployować nową wersję na osobny projekt Firebase (staging) lub preview channel.
-2. Uruchomić obok siebie baseline i nową wersję.
+1. Zdeployować nową wersję na  projekt Firebase 
+2. Uruchomić nową wersję
 3. Przejść przez kompletny `BASELINE_CHECKLIST.md` dla nowej wersji.
-4. Zidentyfikować i naprawić wszystkie niezgodności.
+4. Zidentyfikować i naprawić wszystkie niezgodności 
 
 ### Warunek zakończenia etapu
 
-100% checklisty odznaczone dla nowej wersji na staging.
+100% checklisty odznaczone dla nowej wersji na staging oraz ma działać wkres 2 do tej pory nie działa nie renderuje sie jednak dane chyba dostaje, innymi wykresami sie nie przejmuj bo działają, ticking bomb napis na górze też ma mieć taką samą animację jak w baseline, a nie być statycznym tekstem.
 
 ---
 

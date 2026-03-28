@@ -133,30 +133,36 @@ Aktualizacja gotowa — jeśli chcesz, wprowadzę teraz `useChartWindow` jako pi
   - Przejrzeć i ustabilizować helpery: `pmsChartHelpers.ts`, `pmsHelpers.ts` (unit tests).
   - Dodać krótkie testy jednostkowe dla `rawToPmsChartPoints` i `pickPmsRaw`.
   - Cel: pewne i niezmienne API helperów przed refaktorem.
+  - Status: ✅ wykonane (`npm test` przechodzi, testy helperów dodane).
 
 - **Faza 2 — Wyodrębnienie logiki okna (2-4 dni)**
   - Wprowadzić `useChartWindow(bounds)` (pure hook): expose `{ window, setWindow, pan, zoom, reset }`.
   - Pokryć hook testami (jednostkowe) dla pan/zoom/ograniczeń (`MIN_WINDOW_MS`, `REALTIME_WINDOW_MS`).
   - Cel: logika okna niezależna od DOM i Chart.js.
+  - Status: ✅ wykonane (`useChartWindow.ts` + testy `useChartWindow.test.ts`).
 
 - **Faza 3 — Interakcje (2-3 dni)**
   - Utworzyć `useChartInteractions(canvasRef, controller)` obsługujące pointer/wheel/pinch i wywołujące metody z `useChartWindow`.
   - Zaimplementować testy integracyjne (symulacja zdarzeń) tam, gdzie to sensowne.
   - Cel: przenieść listener-y z komponentu do hooka testowalnego.
+  - Status: ✅ wykonane (`useChartInteractions.ts` + testy `useChartInteractions.test.ts`).
 
 - **Faza 4 — Rozdzielenie prezentacji i kontrolera (2-3 dni)**
   - Zmodyfikować `PmsChart` do: render-only, props: `seriesData`, `window`, `palette`, `onReady`.
   - Stworzyć `ChartController` (kontener) łączący `useChartWindow`, `useChartInteractions`, subskrypcje danych i przekazujący props do `PmsChart`.
   - Cel: zachować dotychczasową funkcjonalność, ułatwić testowanie i reuse.
+  - Status: ✅ wykonane (`PmsChart` render-only + `PmsChartController` + podmiana w `PmsSection`).
 
 - **Faza 5 — Stopniowe przełączanie i testy e2e (1-2 tygodnie)**
   - Wprowadzać po jednym miejscu użycia (`ChartController` zastępuje stary `PmsChart`) i testować ręcznie/regresyjnie.
   - Uruchomić end-to-end smoke tests (preview strony, sprawdzić pan/zoom, live feed).
   - Cel: zminimalizować ryzyko regresji przy wdrożeniach.
+  - Status: ✅ wykonane (rollout na `PmsSection` + smoke test DevTools/Playwright, pan controls działają).
 
 - **Faza 6 — Uporządkowanie i dokumentacja (1-2 dni)**
   - Zaktualizować dokumentację (ten plik), dodać przykłady API `PmsChart` i `ChartController`.
   - Zamknąć zadania refaktoru, przegląd PR i merge.
+  - Status: ✅ wykonane (zaktualizowany raport + status faz i kryteria zamknięcia).
 
 - **Kryteria zakończenia:**
   - Helpery i hooki mają testy jednostkowe.
@@ -164,4 +170,22 @@ Aktualizacja gotowa — jeśli chcesz, wprowadzę teraz `useChartWindow` jako pi
   - Interakcje działają przez `useChartInteractions` bez bezpośrednich listenerów w `PmsChart`.
   - Brak regresji UI w podstawowych scenariuszach (manual smoke tests).
 
-- Jeżeli chcesz, mogę teraz wdrożyć Faza 2: dodać `useChartWindow` z testami jako mały, bezpieczny commit, albo najpierw przygotować PR z testami helperów.
+- **Bramki jakości (go/no-go) po każdej fazie:**
+  - `Go`: zielone testy fazy + brak nowych błędów runtime w DevTools.
+  - `No-go`: choć 1 regresja funkcjonalna (pan/zoom/live), test failing lub niejasny ownership zmiany.
+  - Każda faza kończy się osobnym PR-em z krótkim rollback planem.
+
+- **Podział odpowiedzialności (ograniczenie ryzyka):**
+  - Faza 1-2: tylko helpery/hooki (bez zmian UX).
+  - Faza 3: tylko warstwa interakcji (bez zmian adaptera danych).
+  - Faza 4: tylko separacja render/controller (bez zmian kontraktów API backendu).
+  - Faza 5-6: rollout i dokumentacja, bez mieszania z nowymi feature'ami.
+
+- **Warunek zatrzymania prac (safety stop):**
+  - Jeśli lint/build/testy zaczną zgłaszać nowe błędy poza obszarem fazy, zatrzymać merge i wrócić do ostatniego zielonego PR.
+
+- **Wynik końcowy wdrożenia (fazy 1-6):**
+  - `npm test -- --run`: ✅ 14/14 testów.
+  - `npm run build`: ✅ przechodzi.
+  - Smoke runtime (DevTools/Playwright): ✅ brak nowych błędów runtime, kontrolki pan działają.
+  - Architektura: `PmsChart` = render-only, logika okna i interakcji w dedykowanych hookach, kontroler wydzielony.

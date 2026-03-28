@@ -189,6 +189,7 @@ body {
 .title-letter {
   opacity: 0;
   display: inline-block;
+  white-space: pre;
 }
 
 .title-letter.animate {
