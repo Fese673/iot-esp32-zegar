@@ -8,7 +8,7 @@ function getDevicePath(deviceId: string): string {
   return `devices/${deviceId}`;
 }
 
-function normalizeLiveRecord(value: unknown): LiveRecord | null {
+export function normalizeLiveRecord(value: unknown): LiveRecord | null {
   if (!value || typeof value !== 'object') {
     return null;
   }

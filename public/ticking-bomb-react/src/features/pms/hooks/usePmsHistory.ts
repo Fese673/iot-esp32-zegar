@@ -156,13 +156,10 @@ export function usePmsHistory(selectedDate: string): PmsHistoryResult {
     async function loadHistory() {
       try {
         const deviceId = getRuntimeDeviceId();
-        const primaryPromise = loadPmsHistoryByDay(deviceId, selectedDate);
-        const fallbackPromise = loadPmsHistoryFallback(deviceId, selectedDate).catch(() => [] as PmsRecord[]);
-
-        const primaryRecords = filterRecordsForDay(await primaryPromise, selectedDate);
+        const primaryRecords = filterRecordsForDay(await loadPmsHistoryByDay(deviceId, selectedDate), selectedDate);
         const records = primaryRecords.length > 0
           ? primaryRecords
-          : filterRecordsForDay(await fallbackPromise, selectedDate);
+          : filterRecordsForDay(await loadPmsHistoryFallback(deviceId, selectedDate).catch(() => [] as PmsRecord[]), selectedDate);
 
         if (cancelled || settled) {
           return;

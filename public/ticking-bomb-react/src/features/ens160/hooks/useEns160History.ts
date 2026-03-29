@@ -156,13 +156,10 @@ export function useEns160History(selectedDate: string): Ens160HistoryResult {
     async function loadHistory() {
       try {
         const deviceId = getRuntimeDeviceId();
-        const primaryPromise = loadEns160HistoryByDay(deviceId, selectedDate);
-        const fallbackPromise = loadEns160HistoryFallback(deviceId, selectedDate).catch(() => [] as Ens160Record[]);
-
-        const primaryRecords = filterRecordsForDay(await primaryPromise, selectedDate);
+        const primaryRecords = filterRecordsForDay(await loadEns160HistoryByDay(deviceId, selectedDate), selectedDate);
         const records = primaryRecords.length > 0
           ? primaryRecords
-          : filterRecordsForDay(await fallbackPromise, selectedDate);
+          : filterRecordsForDay(await loadEns160HistoryFallback(deviceId, selectedDate).catch(() => [] as Ens160Record[]), selectedDate);
 
         if (cancelled || settled) {
           return;

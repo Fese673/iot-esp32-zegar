@@ -168,13 +168,10 @@ export function useHistoryData(selectedDate: string): HistoryDataResult {
     async function loadHistory() {
       try {
         const deviceId = getRuntimeDeviceId();
-        const primaryPromise = loadHistoryByDay(deviceId, selectedDate);
-        const fallbackPromise = loadHistoryFallback(deviceId, selectedDate).catch(() => [] as HistoryRecord[]);
-
-        const primaryRecords = filterRecordsForDay(await primaryPromise, selectedDate);
+        const primaryRecords = filterRecordsForDay(await loadHistoryByDay(deviceId, selectedDate), selectedDate);
         const records = primaryRecords.length > 0
           ? primaryRecords
-          : filterRecordsForDay(await fallbackPromise, selectedDate);
+          : filterRecordsForDay(await loadHistoryFallback(deviceId, selectedDate).catch(() => [] as HistoryRecord[]), selectedDate);
 
         if (cancelled || settled) {
           return;

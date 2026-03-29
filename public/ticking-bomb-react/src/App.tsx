@@ -4,39 +4,22 @@ import LiveGrid from './features/dashboard/components/LiveGrid';
 import AlertsSection from './shared/components/AlertsSection';
 import Toast from './shared/components/Toast';
 import Footer from './features/dashboard/components/Footer';
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useConnectionHealth } from './features/dashboard/hooks/useConnectionHealth';
 import { useLiveMetrics } from './features/dashboard/hooks/useLiveMetrics';
 import type { AlertItem } from './shared/types';
 import { AppContext, appReducer, initialState, useAppContext, type AppContextValue } from './shared/context/AppContext';
+import { DeviceTelemetryProvider } from './shared/context/DeviceTelemetryContext';
 import HistoryPanel from './features/dashboard/components/HistoryPanel';
 import PmsSection from './features/pms/components/PmsSection';
 import Ens160Section from './features/ens160/components/Ens160Section';
+
+const AnalysisPage = lazy(() => import('./features/analiza/components/AnalysisPage'));
 
 declare global {
   interface Window {
     __notifyAlert?: (alert: Omit<AlertItem, 'id'> & { id?: string }) => string;
   }
-}
-
-function DataAnalysisPage({ onBack }: { onBack: () => void }) {
-  return (
-    <main className="app-shell">
-      <section className="panel" style={{ padding: '24px' }}>
-        <div className="panel-head" style={{ marginBottom: '14px' }}>
-          <h2>Analiza danych</h2>
-          <button className="ghost-btn" type="button" onClick={onBack}>
-            ← Powrót do dashboardu
-          </button>
-        </div>
-
-        <div style={{ color: 'var(--muted)' }}>
-          To jest strona tymczasowa analizy danych, przygotowana jako oddzielny interfejs.
-          <p>W przyszłości możesz tu dodać wykresy, agregaty, eksport CSV i filtry.</p>
-        </div>
-      </section>
-    </main>
-  );
 }
 
 function DashboardContent() {
@@ -72,7 +55,28 @@ function DashboardContent() {
   }, []);
 
   if (activePage === 'analysis') {
-    return <DataAnalysisPage onBack={backToDashboard} />;
+    return (
+      <Suspense
+        fallback={
+          <main className="app-shell analysis-shell">
+            <section className="panel analysis-empty" aria-live="polite">
+              <h3>Ladowanie modulu analizy</h3>
+              <p>Doczytuje sie wizualizacja i wzory matematyczne.</p>
+            </section>
+          </main>
+        }
+      >
+        <div className="scanlines" aria-hidden="true"></div>
+        <div className="bg-grid" aria-hidden="true"></div>
+        <AnalysisPage
+          onBack={backToDashboard}
+          liveRecord={liveMetrics.data}
+          loadState={liveMetrics.status}
+          connectionStatus={state.connectionStatus}
+          motionEnabled={state.motionEnabled}
+        />
+      </Suspense>
+    );
   }
 
   return (
@@ -195,7 +199,9 @@ function App() {
 
   return (
     <AppContext.Provider value={value}>
-      <DashboardContent />
+      <DeviceTelemetryProvider>
+        <DashboardContent />
+      </DeviceTelemetryProvider>
     </AppContext.Provider>
   );
 }

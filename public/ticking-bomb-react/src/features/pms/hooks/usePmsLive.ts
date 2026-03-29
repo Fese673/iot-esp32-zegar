@@ -1,8 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { onValue, ref } from 'firebase/database';
-import { useAppContext } from '../../../shared/context/AppContext';
-import { getFirebaseDb } from '../../../shared/lib/firebaseClient';
-import { getRuntimeDeviceId } from '../../../shared/lib/runtimeConfig';
+import { useDeviceTelemetry } from '../../../shared/context/DeviceTelemetryContext';
 import { toEpochMs } from '../../../shared/lib/timeHelpers';
 import type { LoadState } from '../../../shared/types';
 import { extractPmRawLike } from '../lib/pmsHelpers';
@@ -38,76 +35,49 @@ export function usePmsLive(): {
   timestamp: number | null;
   points: PmsChartPoint[];
 } {
-  const { pushAlert } = useAppContext();
+  const { latestRaw, latestRevision, status } = useDeviceTelemetry();
   const [data, setData] = useState<Record<string, unknown> | null>(null);
   const [timestamp, setTimestamp] = useState<number | null>(null);
   const [points, setPoints] = useState<PmsChartPoint[]>([]);
-  const [status, setStatus] = useState<LoadState>('loading');
-  const hasReceivedDataRef = useRef(false);
+  const lastConsumedRevisionRef = useRef(0);
 
   useEffect(() => {
-    hasReceivedDataRef.current = false;
-
-    const timeoutId = window.setTimeout(() => {
-      if (!hasReceivedDataRef.current) {
-        setStatus('empty');
-      }
-    }, 4000);
-
-    const deviceId = getRuntimeDeviceId();
-    const liveRef = ref(getFirebaseDb(), `devices/${deviceId}/latest`);
-    const unsubscribe = onValue(liveRef, (snapshot) => {
-      const value = snapshot.val();
-      if (!value || typeof value !== 'object') {
-        return;
+    if (status !== 'loaded' || !latestRaw || latestRevision === lastConsumedRevisionRef.current) {
+      if (status === 'error') {
+        setData(null);
+        setTimestamp(null);
       }
 
-      hasReceivedDataRef.current = true;
-      const record = value as Record<string, unknown>;
-      const normalizedTimestamp = normalizePmsLiveTimestamp(record);
-      const pmsRaw = extractPmRawLike(record);
+      return;
+    }
 
-      setData(record);
-      setTimestamp(normalizedTimestamp);
-      if (normalizedTimestamp != null && pmsRaw) {
-        const incomingPoints = rawToPmsChartPoints(pmsRaw, normalizedTimestamp);
-        setPoints((prev) => {
-          const dayStart = getDayStartTimestamp(normalizedTimestamp);
-          const shouldDropPreviousDay = prev.length > 0 && prev[0].x < dayStart;
-          const dayPoints = shouldDropPreviousDay ? prev.filter((point) => point.x >= dayStart) : prev;
-          const merged = mergePmsChartPoints(dayPoints, incomingPoints);
+    lastConsumedRevisionRef.current = latestRevision;
+    const record = latestRaw;
+    const normalizedTimestamp = normalizePmsLiveTimestamp(record);
+    const pmsRaw = extractPmRawLike(record);
 
-          if (merged.length > MAX_LIVE_POINTS) {
-            return merged.slice(merged.length - MAX_LIVE_POINTS);
-          }
+    setData(record);
+    setTimestamp(normalizedTimestamp);
+    if (normalizedTimestamp != null && pmsRaw) {
+      const incomingPoints = rawToPmsChartPoints(pmsRaw, normalizedTimestamp);
+      setPoints((prev) => {
+        const dayStart = getDayStartTimestamp(normalizedTimestamp);
+        const shouldDropPreviousDay = prev.length > 0 && prev[0].x < dayStart;
+        const dayPoints = shouldDropPreviousDay ? prev.filter((point) => point.x >= dayStart) : prev;
+        const merged = mergePmsChartPoints(dayPoints, incomingPoints);
 
-          if (merged === dayPoints && !shouldDropPreviousDay) {
-            return prev;
-          }
+        if (merged.length > MAX_LIVE_POINTS) {
+          return merged.slice(merged.length - MAX_LIVE_POINTS);
+        }
 
-          return merged;
-        });
-      }
-      setStatus('loaded');
-    }, (error) => {
-      hasReceivedDataRef.current = true;
-      setData(null);
-      setTimestamp(null);
-      setStatus('error');
-      pushAlert({
-        level: 'error',
-        message: error.message.toLowerCase().includes('permission')
-          ? 'Brak dostępu do Firebase — sprawdź reguły bazy.'
-          : 'Błąd odczytu danych PMS z Firebase.',
-        autoDismiss: false,
+        if (merged === dayPoints && !shouldDropPreviousDay) {
+          return prev;
+        }
+
+        return merged;
       });
-    });
-
-    return () => {
-      window.clearTimeout(timeoutId);
-      unsubscribe();
-    };
-  }, [pushAlert]);
+    }
+  }, [latestRaw, latestRevision, status]);
 
   return { data, status, timestamp, points };
 }

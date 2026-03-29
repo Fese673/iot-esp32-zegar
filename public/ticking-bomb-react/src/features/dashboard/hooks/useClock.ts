@@ -18,10 +18,14 @@ export function useClock(ts: number | undefined): ClockState {
   const [state, setState] = useState<ClockState>(() => createLocalClockState());
 
   const hasAnnouncedFallbackRef = useRef(false);
-  const baseMsRef = useRef<number>(Date.now() - performance.now());
+  const baseMsRef = useRef<number>(0);
   const timeoutIdRef = useRef<number | null>(null);
 
   useEffect(() => {
+    if (baseMsRef.current === 0) {
+      baseMsRef.current = Date.now() - performance.now();
+    }
+
     const CLOCK_VISIBLE_UPDATE_MS = 125;
     const CLOCK_HIDDEN_UPDATE_MS = 1_000;
 
