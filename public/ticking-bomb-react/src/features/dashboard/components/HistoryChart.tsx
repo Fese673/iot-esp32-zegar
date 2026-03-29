@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Chart, registerables, type ChartDataset, type TooltipItem } from 'chart.js';
 import { clampWindow, groupChartPointsBySeries, sortChartPoints } from '../../../shared/lib/chartHelpers';
-import type { ChartPoint, ChartSeriesKey, LoadState } from '../../../shared/types';
+import type { ChartPoint, LoadState } from '../../../shared/types';
 
 Chart.register(...registerables);
 
@@ -32,10 +32,21 @@ interface ChartPalette {
   grid: string;
 }
 
+interface SeriesConfig {
+  key: string;
+  label: string;
+  color: string;
+  yAxisID: 'y' | 'y1';
+  unit?: string;
+  tension?: number;
+  borderDash?: number[];
+}
+
 interface HistoryChartProps {
   points: ChartPoint[];
   loadState: LoadState;
   selectedDate: string;
+  seriesConfig?: SeriesConfig[];
 }
 
 const MIN_WINDOW_MS = 60_000;
@@ -95,45 +106,52 @@ function formatAxisTime(value: number): string {
   return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-function formatTooltipLabel(datasetIndex: number, value: number): string {
-  if (datasetIndex === 0) {
-    return `Temperatura: ${value.toFixed(1)} °C`;
-  }
-
-  if (datasetIndex === 1) {
-    return `Wilgotność: ${Math.round(value)} %`;
-  }
-
-  return `Ciśnienie: ${Math.round(value)} hPa`;
+function formatTooltipLabel(dataset: ChartDataset<'line', PlotPoint[]>, value: number): string {
+  const label = dataset.label || 'Wartość';
+  const unit = (dataset as unknown as { _unit?: string })._unit || '';
+  const formatted = Number.isInteger(value) ? `${Math.round(value)}` : `${value.toFixed(1)}`;
+  return `${label}: ${formatted}${unit ? ` ${unit}` : ''}`;
 }
 
-function createDataset(label: string, color: string, yAxisID: 'y' | 'y1', extra: Partial<ChartDataset<'line', PlotPoint[]>> = {}): ChartDataset<'line', PlotPoint[]> {
-  return {
-    label,
+function createDataset(config: SeriesConfig): ChartDataset<'line', PlotPoint[]> {
+  const dataset: ChartDataset<'line', PlotPoint[]> = {
+    label: config.label,
     data: [],
-    borderColor: color,
-    backgroundColor: withAlpha(color, 0.08),
-    tension: extra.tension ?? 0.25,
+    borderColor: config.color,
+    backgroundColor: withAlpha(config.color, 0.08),
+    tension: config.tension ?? 0.25,
     pointRadius: 0,
     pointHitRadius: 6,
     borderWidth: 2,
     borderJoinStyle: 'round',
     borderCapStyle: 'round',
     parsing: false,
-    yAxisID,
-    ...extra,
+    yAxisID: config.yAxisID,
+    borderDash: config.borderDash,
   };
+
+  (dataset as unknown as { _seriesKey: string; _unit?: string })._seriesKey = config.key;
+  (dataset as unknown as { _unit?: string })._unit = config.unit;
+
+  return dataset;
 }
 
-function createChart(canvas: HistoryCanvasElement, palette: ChartPalette): HistoryChartInstance {
+function createDefaultSeriesConfig(palette: ChartPalette): SeriesConfig[] {
+  return [
+    { key: 't', label: 'Temperatura (°C)', color: palette.temp, yAxisID: 'y', unit: '°C' },
+    { key: 'h', label: 'Wilgotność (%)', color: palette.hum, yAxisID: 'y', unit: '%' },
+    { key: 'p', label: 'Ciśnienie (hPa)', color: palette.press, yAxisID: 'y1', unit: 'hPa', borderDash: [4, 4], tension: 0.1 },
+  ];
+}
+
+function createChart(canvas: HistoryCanvasElement, palette: ChartPalette, seriesConfig: SeriesConfig[]): HistoryChartInstance {
+  const hasY = seriesConfig.some((item) => item.yAxisID === 'y');
+  const hasY1 = seriesConfig.some((item) => item.yAxisID === 'y1');
+
   return new Chart<'line', PlotPoint[], number>(canvas, {
     type: 'line',
     data: {
-      datasets: [
-        createDataset('Temperatura (°C)', palette.temp, 'y'),
-        createDataset('Wilgotność (%)', palette.hum, 'y'),
-        createDataset('Ciśnienie (hPa)', palette.press, 'y1', { borderDash: [4, 4], tension: 0.1 }),
-      ],
+      datasets: seriesConfig.map(createDataset),
     },
     options: {
       responsive: true,
@@ -159,7 +177,7 @@ function createChart(canvas: HistoryCanvasElement, palette: ChartPalette): Histo
           displayColors: false,
           padding: 10,
           callbacks: {
-            label: (context: TooltipItem<'line'>) => formatTooltipLabel(context.datasetIndex, Number(context.parsed.y ?? 0)),
+            label: (context: TooltipItem<'line'>) => formatTooltipLabel(context.dataset as ChartDataset<'line', PlotPoint[]>, Number(context.parsed.y ?? 0)),
             title: (items: TooltipItem<'line'>[]) => {
               if (!items.length) {
                 return '';
@@ -185,18 +203,23 @@ function createChart(canvas: HistoryCanvasElement, palette: ChartPalette): Histo
           position: 'left',
           grid: { color: palette.grid },
           ticks: { color: palette.muted },
+          title: {
+            display: hasY,
+            text: hasY ? seriesConfig.filter((item) => item.yAxisID === 'y').map((item) => item.unit || item.label).join(' / ') : undefined,
+            color: palette.muted,
+          },
         },
         y1: {
           type: 'linear',
           position: 'right',
           grid: { drawOnChartArea: false },
-          ticks: {
-            color: palette.press,
-            stepSize: 5,
-            callback: (value) => `${value} hPa`,
+          ticks: { color: palette.text },
+          title: {
+            display: hasY1,
+            text: hasY1 ? seriesConfig.filter((item) => item.yAxisID === 'y1').map((item) => item.unit || item.label).join(' / ') : undefined,
+            color: palette.text,
           },
-          min: 960,
-          max: 1040,
+          beginAtZero: false,
         },
       },
     },
@@ -226,16 +249,18 @@ function getLatestPoint(points: ChartPoint[]): number {
   return points.reduce((latest, point) => Math.max(latest, point.x), 0);
 }
 
-function getSeriesData(points: ChartPoint[]): Record<ChartSeriesKey, PlotPoint[]> {
+function getSeriesData(points: ChartPoint[]): Record<string, PlotPoint[]> {
   const grouped = groupChartPointsBySeries(sortChartPoints(points));
-  return {
-    t: toPlotPoints(grouped.t),
-    h: toPlotPoints(grouped.h),
-    p: toPlotPoints(grouped.p),
-  };
+  const result: Record<string, PlotPoint[]> = {};
+
+  Object.entries(grouped).forEach(([series, seriesPoints]) => {
+    result[series] = toPlotPoints(seriesPoints);
+  });
+
+  return result;
 }
 
-export default function HistoryChart({ points, loadState, selectedDate }: HistoryChartProps) {
+export default function HistoryChart({ points, loadState, selectedDate, seriesConfig }: HistoryChartProps) {
   const canvasRef = useRef<HistoryCanvasElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<HistoryChartInstance | null>(null);
@@ -263,7 +288,8 @@ export default function HistoryChart({ points, loadState, selectedDate }: Histor
     }
 
     const palette = readChartPalette();
-    const chart = createChart(canvas, palette);
+    const chartSeries = seriesConfig ?? createDefaultSeriesConfig(palette);
+    const chart = createChart(canvas, palette, chartSeries);
     const activePointers = new Map<number, { x: number; y: number }>();
     let pinchStartDist: number | null = null;
     let pinchStartWidth: number | null = null;
@@ -453,7 +479,7 @@ export default function HistoryChart({ points, loadState, selectedDate }: Histor
       chartRef.current = null;
       delete chartCanvas.__historyChart;
     };
-  }, []);
+  }, [seriesConfig]);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -472,16 +498,21 @@ export default function HistoryChart({ points, loadState, selectedDate }: Histor
     }
 
     if (loadState !== 'loaded' || sortedPoints.length === 0 || !bounds) {
-      chart.data.datasets[0].data = [];
-      chart.data.datasets[1].data = [];
-      chart.data.datasets[2].data = [];
+      chart.data.datasets.forEach((dataset) => {
+        dataset.data = [];
+      });
       chart.update('none');
       return;
     }
 
-    chart.data.datasets[0].data = seriesData.t;
-    chart.data.datasets[1].data = seriesData.h;
-    chart.data.datasets[2].data = seriesData.p;
+    chart.data.datasets.forEach((dataset) => {
+      const seriesKey = (dataset as unknown as { _seriesKey?: string })._seriesKey;
+      if (seriesKey && Object.prototype.hasOwnProperty.call(seriesData, seriesKey)) {
+        dataset.data = seriesData[seriesKey];
+      } else {
+        dataset.data = [];
+      }
+    });
 
     if (initializedDateRef.current === selectedDate && chartWindowRef.current.end > chartWindowRef.current.start) {
       setChartWindowRef.current(chartWindowRef.current.start, chartWindowRef.current.end);

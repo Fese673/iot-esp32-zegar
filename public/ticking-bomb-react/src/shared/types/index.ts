@@ -17,6 +17,16 @@ export interface PmsRecord {
   ts: number;
 }
 
+export interface Ens160Raw {
+  tvoc: number;
+  eco2: number;
+  aqi?: number;
+}
+
+export interface Ens160Record extends Ens160Raw {
+  ts: number;
+}
+
 export interface HistoryRecord {
   t: number;
   h: number;
@@ -33,7 +43,7 @@ export interface ClockState {
   rtt: number | null;
 }
 
-export type ChartSeriesKey = 't' | 'h' | 'p';
+export type ChartSeriesKey = 't' | 'h' | 'p' | 'tvoc' | 'eco2';
 
 export interface ChartPoint {
   series: ChartSeriesKey;

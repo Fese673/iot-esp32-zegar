@@ -1,70 +1,70 @@
 import { useEffect, useState } from 'react';
 import { useAppContext } from '../../../shared/context/AppContext';
-import { loadPmsHistoryByDay, loadPmsHistoryFallback } from '../api/pmsAdapter';
 import { dateRangeForDay, isDateKeyInRange, toDateKey } from '../../../shared/lib/dateHelpers';
 import { getRuntimeDeviceId } from '../../../shared/lib/runtimeConfig';
 import { toEpochMs } from '../../../shared/lib/timeHelpers';
-import { recordToPmsChartPoints, sortPmsChartPoints, type PmsChartPoint } from '../lib/pmsChartHelpers';
-import type { LoadState, PmsRecord } from '../../../shared/types';
+import { sortChartPoints } from '../../../shared/lib/chartHelpers';
+import type { ChartPoint, Ens160Record, LoadState } from '../../../shared/types';
+import { loadEns160HistoryByDay, loadEns160HistoryFallback } from '../api/ens160Adapter';
+import { recordToEns160ChartPoints } from '../lib/ens160ChartHelpers';
 
-function filterRecordsForDay(records: PmsRecord[], date: string): PmsRecord[] {
+function filterRecordsForDay(records: Ens160Record[], date: string): Ens160Record[] {
   const range = dateRangeForDay(date);
-
   return records.filter((record) => isDateKeyInRange(toEpochMs(record.ts), range));
 }
 
-function recordsToPoints(records: PmsRecord[]): PmsChartPoint[] {
-  return sortPmsChartPoints(records.flatMap(recordToPmsChartPoints));
+function recordsToPoints(records: Ens160Record[]): ChartPoint[] {
+  return sortChartPoints(records.flatMap(recordToEns160ChartPoints));
 }
 
-interface PmsHistoryResult {
-  points: PmsChartPoint[];
+interface Ens160HistoryResult {
+  points: ChartPoint[];
   loadState: LoadState;
   dataDensity: number;
 }
 
-interface PmsHistoryState {
+interface Ens160HistoryState {
   dateKey: string;
-  points: PmsChartPoint[];
+  points: ChartPoint[];
   loadState: LoadState;
   dataDensity: number;
 }
 
-const PMS_HISTORY_CACHE_PREFIX = 'tb:pms-history:v1:';
-const PMS_HISTORY_CACHE_TTL_MS = 20 * 60 * 1000;
-const PMS_HISTORY_CACHE_MAX_POINTS = 2_400;
+const ENS160_HISTORY_CACHE_PREFIX = 'tb:ens160-history:v1:';
+const ENS160_HISTORY_CACHE_TTL_MS = 20 * 60 * 1000;
+const ENS160_HISTORY_CACHE_MAX_POINTS = 2_400;
 
-type CachedPmsHistoryTuple = [PmsChartPoint['series'], number, number];
+type CachedEns160HistoryTuple = [ChartPoint['series'], number, number];
 
-interface CachedPmsHistoryPayload {
+interface CachedEns160HistoryPayload {
   v: 1;
   savedAt: number;
-  points: CachedPmsHistoryTuple[];
+  points: CachedEns160HistoryTuple[];
 }
 
-function pmsHistoryCacheKey(dateKey: string): string {
-  return `${PMS_HISTORY_CACHE_PREFIX}${dateKey}`;
+function ens160HistoryCacheKey(dateKey: string): string {
+  return `${ENS160_HISTORY_CACHE_PREFIX}${dateKey}`;
 }
 
-function readCachedPmsHistoryPoints(dateKey: string): PmsChartPoint[] {
+function readCachedEns160HistoryPoints(dateKey: string): ChartPoint[] {
   if (typeof window === 'undefined') {
     return [];
   }
 
   try {
-    const raw = window.sessionStorage.getItem(pmsHistoryCacheKey(dateKey));
+    const raw = window.sessionStorage.getItem(ens160HistoryCacheKey(dateKey));
     if (!raw) {
       return [];
     }
 
-    const parsed = JSON.parse(raw) as CachedPmsHistoryPayload;
+    const parsed = JSON.parse(raw) as CachedEns160HistoryPayload;
     if (
       parsed.v !== 1
       || !Number.isFinite(parsed.savedAt)
-      || Date.now() - parsed.savedAt > PMS_HISTORY_CACHE_TTL_MS
+      || Date.now() - parsed.savedAt > ENS160_HISTORY_CACHE_TTL_MS
       || !Array.isArray(parsed.points)
     ) {
-      window.sessionStorage.removeItem(pmsHistoryCacheKey(dateKey));
+      window.sessionStorage.removeItem(ens160HistoryCacheKey(dateKey));
       return [];
     }
 
@@ -74,45 +74,45 @@ function readCachedPmsHistoryPoints(dateKey: string): PmsChartPoint[] {
       }
 
       const [series, x, y] = entry;
-      if ((series !== 'pm1' && series !== 'pm25' && series !== 'pm10') || !Number.isFinite(x) || !Number.isFinite(y)) {
+      if ((series !== 'eco2' && series !== 'tvoc') || !Number.isFinite(x) || !Number.isFinite(y)) {
         return [];
       }
 
-      return [{ series, x, y } satisfies PmsChartPoint];
+      return [{ series, x, y } satisfies ChartPoint];
     });
 
-    return points.length > 0 ? sortPmsChartPoints(points) : [];
+    return points.length > 0 ? sortChartPoints(points) : [];
   } catch {
     return [];
   }
 }
 
-function writeCachedPmsHistoryPoints(dateKey: string, points: PmsChartPoint[]): void {
+function writeCachedEns160HistoryPoints(dateKey: string, points: ChartPoint[]): void {
   if (typeof window === 'undefined' || points.length === 0) {
     return;
   }
 
-  const serializedPoints: CachedPmsHistoryTuple[] = points
-    .slice(-PMS_HISTORY_CACHE_MAX_POINTS)
+  const serializedPoints: CachedEns160HistoryTuple[] = points
+    .slice(-ENS160_HISTORY_CACHE_MAX_POINTS)
     .map((point) => [point.series, point.x, point.y]);
 
-  const payload: CachedPmsHistoryPayload = {
+  const payload: CachedEns160HistoryPayload = {
     v: 1,
     savedAt: Date.now(),
     points: serializedPoints,
   };
 
   try {
-    window.sessionStorage.setItem(pmsHistoryCacheKey(dateKey), JSON.stringify(payload));
+    window.sessionStorage.setItem(ens160HistoryCacheKey(dateKey), JSON.stringify(payload));
   } catch {
     // Ignore storage quota errors and continue with network data only.
   }
 }
 
-export function usePmsHistory(selectedDate: string): PmsHistoryResult {
+export function useEns160History(selectedDate: string): Ens160HistoryResult {
   const { pushAlert } = useAppContext();
-  const initialCachedPoints = readCachedPmsHistoryPoints(selectedDate);
-  const [state, setState] = useState<PmsHistoryState>(() => ({
+  const initialCachedPoints = readCachedEns160HistoryPoints(selectedDate);
+  const [state, setState] = useState<Ens160HistoryState>(() => ({
     dateKey: selectedDate,
     points: initialCachedPoints,
     loadState: initialCachedPoints.length > 0 ? 'loaded' : 'loading',
@@ -120,9 +120,9 @@ export function usePmsHistory(selectedDate: string): PmsHistoryResult {
   }));
 
   useEffect(() => {
-    const cachedPoints = readCachedPmsHistoryPoints(selectedDate);
-
+    const cachedPoints = readCachedEns160HistoryPoints(selectedDate);
     const selectedIsToday = selectedDate === toDateKey(new Date());
+
     let cancelled = false;
     let settled = false;
     const timeoutId = window.setTimeout(() => {
@@ -149,15 +149,15 @@ export function usePmsHistory(selectedDate: string): PmsHistoryResult {
       });
 
       if (!selectedIsToday) {
-        pushAlert({ level: 'error', message: 'Błąd pobierania historii PMS.', autoDismiss: false });
+        pushAlert({ level: 'error', message: 'Błąd pobierania historii ENS160.', autoDismiss: false });
       }
     }, 8_000);
 
     async function loadHistory() {
       try {
         const deviceId = getRuntimeDeviceId();
-        const primaryPromise = loadPmsHistoryByDay(deviceId, selectedDate);
-        const fallbackPromise = loadPmsHistoryFallback(deviceId, selectedDate).catch(() => [] as PmsRecord[]);
+        const primaryPromise = loadEns160HistoryByDay(deviceId, selectedDate);
+        const fallbackPromise = loadEns160HistoryFallback(deviceId, selectedDate).catch(() => [] as Ens160Record[]);
 
         const primaryRecords = filterRecordsForDay(await primaryPromise, selectedDate);
         const records = primaryRecords.length > 0
@@ -179,13 +179,13 @@ export function usePmsHistory(selectedDate: string): PmsHistoryResult {
             loadState: 'empty',
           });
           if (!selectedIsToday) {
-            pushAlert({ level: 'warn', message: `Brak danych PMS dla ${selectedDate}.`, autoDismiss: true });
+            pushAlert({ level: 'warn', message: `Brak danych ENS160 dla ${selectedDate}.`, autoDismiss: true });
           }
           return;
         }
 
         const nextPoints = recordsToPoints(records);
-        writeCachedPmsHistoryPoints(selectedDate, nextPoints);
+        writeCachedEns160HistoryPoints(selectedDate, nextPoints);
         setState({
           dateKey: selectedDate,
           points: nextPoints,
@@ -207,7 +207,7 @@ export function usePmsHistory(selectedDate: string): PmsHistoryResult {
         });
 
         if (!selectedIsToday && cachedPoints.length === 0) {
-          pushAlert({ level: 'error', message: 'Błąd pobierania historii PMS.', autoDismiss: false });
+          pushAlert({ level: 'error', message: 'Błąd pobierania historii ENS160.', autoDismiss: false });
         }
       }
     }
@@ -221,7 +221,7 @@ export function usePmsHistory(selectedDate: string): PmsHistoryResult {
   }, [pushAlert, selectedDate]);
 
   if (state.dateKey !== selectedDate) {
-    const cachedPoints = readCachedPmsHistoryPoints(selectedDate);
+    const cachedPoints = readCachedEns160HistoryPoints(selectedDate);
     if (cachedPoints.length > 0) {
       return {
         points: cachedPoints,

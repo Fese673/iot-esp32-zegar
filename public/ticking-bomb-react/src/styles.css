@@ -58,7 +58,7 @@ body {
     rgba(0, 0, 0, 0.04) 4px
   );
   z-index: 9999;
-  animation: scanShift 12s linear infinite;
+  animation: scanShift 24s steps(24, end) infinite;
 }
 
 @keyframes scanShift {
@@ -476,6 +476,137 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.aqi-scale {
+  width: 100%;
+  margin-top: 6px;
+  gap: 4px;
+  display: grid;
+  position: relative;
+}
+
+.aqi-scale-track {
+  position: relative;
+  min-height: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 99px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.aqi-scale-labels {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -26px;
+  margin: 0;
+  padding: 0;
+  height: 20px;
+  pointer-events: none;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.aqi-scale-labels span {
+  padding-top: 2px;
+}
+
+.aqi-scale-labels span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  line-height: 1;
+  width: auto;
+  min-width: 1rem;
+  text-align: center;
+}
+
+.aqi-scale-labels span:nth-child(1) { left: 10%; }
+.aqi-scale-labels span:nth-child(2) { left: 30%; }
+.aqi-scale-labels span:nth-child(3) { left: 50%; }
+.aqi-scale-labels span:nth-child(4) { left: 70%; }
+.aqi-scale-labels span:nth-child(5) { left: 90%; }
+
+.aqi-step {
+  flex: 1;
+  height: 100%;
+}
+
+.pms-inner-panel .pms5003-grid .stat-card {
+  min-height: 158px;
+  height: 158px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.pms-inner-panel .pms5003-grid .stat-card .aqi-scale {
+  min-height: 16px;
+  margin-top: 4px;
+}
+
+.aqi-scale-track {
+  min-height: 8px;
+}
+
+.aqi-indicator {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 20px;
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.35);
+  transition: left 0.2s ease;
+  color: inherit;
+}
+
+.aqi-1 { background: #2dc937; }
+.aqi-2 { background: #77d500; }
+.aqi-3 { background: #f7e41f; }
+.aqi-4 { background: #ff9600; }
+.aqi-5 { background: #ff3b30; }
+
+.aqi-indicator::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid currentColor;
+}
+
+.aqi-scale-meta {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aqi-scale-labels {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.aqi-scale-labels span {
+  justify-self: center;
+  min-width: 0;
+  width: 100%;
+  text-align: center;
+}
+
 .pms-inner-panel .panel-head {
   padding: 14px 18px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -485,7 +616,23 @@ body {
   padding: 18px 18px 18px;
 }
 
-.chart-stack { display: grid; gap: 10px; }
+.pms-particles-stage {
+  margin-top: 0;
+}
+
+.pms-particles-stage > .particles3-card {
+  margin-top: 0;
+}
+
+.chart-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.chart-stack-item {
+  display: grid;
+  min-width: 0;
+}
 
 .chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .chart-head .chart-hint {
@@ -796,6 +943,12 @@ body {
   .foot-inner { gap: 12px; }
   .hazard-strip { display: none; }
   .foot-text { font-size: 1.1rem; }
+  .pms-history-stack {
+    gap: 18px;
+  }
+  .pms-separator {
+    gap: 10px;
+  }
 }
 
 /* PMS5003 chart section accent (green glow) */
@@ -844,6 +997,32 @@ body {
 /* Panel body inside inner panel */
 .pms-inner-panel .panel-body.split {
   padding: 18px 18px 18px;
+}
+
+.pms-history-stack {
+  gap: 24px;
+}
+
+.pms-separator {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 4px;
+}
+
+.pms-separator-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+}
+
+.pms-separator-chip {
+  flex: none;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
 }
 
 /* Colour-coded PM values */

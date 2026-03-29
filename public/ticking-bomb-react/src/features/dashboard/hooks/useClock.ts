@@ -16,52 +16,95 @@ function createLocalClockState(): ClockState {
 export function useClock(ts: number | undefined): ClockState {
   const { pushAlert } = useAppContext();
   const [state, setState] = useState<ClockState>(() => createLocalClockState());
+
   const hasAnnouncedFallbackRef = useRef(false);
+  const baseMsRef = useRef<number>(Date.now() - performance.now());
+  const timeoutIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    let baseMs = Date.now();
-    const CLOCK_UPDATE_MS = 50; // keep the milli display responsive (≈20fps) without overloading render.
+    const CLOCK_VISIBLE_UPDATE_MS = 125;
+    const CLOCK_HIDDEN_UPDATE_MS = 1_000;
 
-    const syncTimeFromDevice = () => {
-      if (ts == null) {
-        baseMs = Date.now();
-        if (!hasAnnouncedFallbackRef.current) {
-          hasAnnouncedFallbackRef.current = true;
-          pushAlert({ level: 'warn', message: 'Brak czasu z urządzenia — używam czasu lokalnego.', autoDismiss: true });
+    const updateState = (next: Partial<ClockState>) => {
+      setState((prev) => {
+        const merged: ClockState = {
+          ...prev,
+          ...next,
+        };
+
+        if (
+          prev.displayTime === merged.displayTime &&
+          prev.source === merged.source &&
+          prev.startMs === merged.startMs &&
+          prev.rtt === merged.rtt
+        ) {
+          return prev;
         }
-        setState((currentState) => ({
-          ...currentState,
-          source: 'local',
-          rtt: null,
-          startMs: null,
-          displayTime: formatClock(baseMs),
-        }));
-        return;
-      }
 
-      baseMs = toEpochMs(ts) - performance.now();
-      hasAnnouncedFallbackRef.current = false;
-      const deviceMs = toEpochMs(ts);
-      const rtt = Math.max(0, Date.now() - deviceMs);
-      setState({
-        displayTime: formatClock(baseMs + performance.now()),
-        source: 'device',
-        startMs: deviceMs,
-        rtt,
+        return merged;
       });
     };
 
-    syncTimeFromDevice();
+    const syncClock = () => {
+      if (ts == null) {
+        baseMsRef.current = Date.now() - performance.now();
 
-    const intervalId = window.setInterval(() => {
-      setState((currentState) => ({
-        ...currentState,
-        displayTime: formatClock(baseMs + performance.now()),
-      }));
-    }, CLOCK_UPDATE_MS);
+        if (!hasAnnouncedFallbackRef.current) {
+          hasAnnouncedFallbackRef.current = true;
+          pushAlert({
+            level: 'warn',
+            message: 'Brak czasu z urządzenia — używam czasu lokalnego.',
+            autoDismiss: true,
+          });
+        }
+
+        updateState({
+          source: 'local',
+          rtt: null,
+          startMs: null,
+          displayTime: formatClock(baseMsRef.current + performance.now()),
+        });
+        return;
+      }
+
+      const deviceMs = toEpochMs(ts);
+      baseMsRef.current = deviceMs - performance.now();
+      hasAnnouncedFallbackRef.current = false;
+      const rtt = Math.max(0, Date.now() - deviceMs);
+
+      updateState({
+        source: 'device',
+        startMs: deviceMs,
+        rtt,
+        displayTime: formatClock(baseMsRef.current + performance.now()),
+      });
+    };
+
+    const tick = () => {
+      updateState({ displayTime: formatClock(baseMsRef.current + performance.now()) });
+
+      const delay = document.hidden ? CLOCK_HIDDEN_UPDATE_MS : CLOCK_VISIBLE_UPDATE_MS;
+      timeoutIdRef.current = window.setTimeout(tick, delay);
+    };
+
+    const handleVisibilityChange = () => {
+      if (timeoutIdRef.current != null) {
+        window.clearTimeout(timeoutIdRef.current);
+      }
+
+      updateState({ displayTime: formatClock(baseMsRef.current + performance.now()) });
+      tick();
+    };
+
+    syncClock();
+    tick();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      window.clearInterval(intervalId);
+      if (timeoutIdRef.current != null) {
+        window.clearTimeout(timeoutIdRef.current);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [pushAlert, ts]);
 

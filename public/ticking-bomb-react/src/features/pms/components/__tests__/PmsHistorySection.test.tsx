@@ -13,6 +13,10 @@ vi.mock('../PmsChartController', () => ({
   default: () => null,
 }));
 
+vi.mock('../../particles/components/PmsParticlesChart', () => ({
+  default: () => null,
+}));
+
 vi.mock('../../../../shared/components/Calendar', () => ({
   default: () => null,
 }));
@@ -27,6 +31,10 @@ vi.mock('../../hooks/usePmsHistory', () => ({
 
 vi.mock('../../../../shared/hooks/useCalendar', () => ({
   useCalendar: useCalendarMock,
+}));
+
+vi.mock('../../../dashboard/components/HistoryChart', () => ({
+  default: () => null,
 }));
 
 describe('PmsHistorySection live tiles', () => {
@@ -74,6 +82,8 @@ describe('PmsHistorySection live tiles', () => {
     expect(container.querySelector('#pm1Value')?.textContent).toBe('1.2');
     expect(container.querySelector('#pm25Value')?.textContent).toBe('2.3');
     expect(container.querySelector('#pm10Value')?.textContent).toBe('3.4');
+    const eyebrowTexts = Array.from(container.querySelectorAll('p.eyebrow')).map((el) => el.textContent);
+    expect(eyebrowTexts).toContain('WYKRES 2');
 
     await act(async () => {
       root.unmount();

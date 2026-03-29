@@ -1,4 +1,4 @@
-import type { ChartPoint, ChartSeriesKey } from '../types';
+import type { ChartPoint } from '../types';
 
 export interface WindowRange {
   start: number;
@@ -9,14 +9,14 @@ export function sortChartPoints(points: ChartPoint[]): ChartPoint[] {
   return [...points].sort((left, right) => left.x - right.x || left.series.localeCompare(right.series));
 }
 
-export function groupChartPointsBySeries(points: ChartPoint[]): Record<ChartSeriesKey, ChartPoint[]> {
-  return points.reduce<Record<ChartSeriesKey, ChartPoint[]>>(
-    (groups, point) => {
-      groups[point.series].push(point);
-      return groups;
-    },
-    { t: [], h: [], p: [] },
-  );
+export function groupChartPointsBySeries(points: ChartPoint[]): Record<string, ChartPoint[]> {
+  return points.reduce<Record<string, ChartPoint[]>>((groups, point) => {
+    if (!groups[point.series]) {
+      groups[point.series] = [];
+    }
+    groups[point.series].push(point);
+    return groups;
+  }, {});
 }
 
 export function appendUniqueChartPoint(points: ChartPoint[], point: ChartPoint): ChartPoint[] {

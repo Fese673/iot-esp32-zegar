@@ -4,27 +4,14 @@ import LiveGrid from './features/dashboard/components/LiveGrid';
 import AlertsSection from './shared/components/AlertsSection';
 import Toast from './shared/components/Toast';
 import Footer from './features/dashboard/components/Footer';
-import { Suspense, lazy, useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useConnectionHealth } from './features/dashboard/hooks/useConnectionHealth';
 import { useLiveMetrics } from './features/dashboard/hooks/useLiveMetrics';
 import type { AlertItem } from './shared/types';
 import { AppContext, appReducer, initialState, useAppContext, type AppContextValue } from './shared/context/AppContext';
-
-const HistoryPanel = lazy(() => import('./features/dashboard/components/HistoryPanel'));
-const PmsSection = lazy(() => import('./features/pms/components/PmsSection'));
-
-function SectionFallback({ label, title, className }: { label: string; title: string; className?: string }) {
-  return (
-    <section className={className ?? 'panel'} aria-label={label}>
-      <header className="panel-head">
-        <div>
-          <p className="eyebrow">Ładowanie</p>
-          <h2>{title}</h2>
-        </div>
-      </header>
-    </section>
-  );
-}
+import HistoryPanel from './features/dashboard/components/HistoryPanel';
+import PmsSection from './features/pms/components/PmsSection';
+import Ens160Section from './features/ens160/components/Ens160Section';
 
 declare global {
   interface Window {
@@ -32,13 +19,61 @@ declare global {
   }
 }
 
+function DataAnalysisPage({ onBack }: { onBack: () => void }) {
+  return (
+    <main className="app-shell">
+      <section className="panel" style={{ padding: '24px' }}>
+        <div className="panel-head" style={{ marginBottom: '14px' }}>
+          <h2>Analiza danych</h2>
+          <button className="ghost-btn" type="button" onClick={onBack}>
+            ← Powrót do dashboardu
+          </button>
+        </div>
+
+        <div style={{ color: 'var(--muted)' }}>
+          To jest strona tymczasowa analizy danych, przygotowana jako oddzielny interfejs.
+          <p>W przyszłości możesz tu dodać wykresy, agregaty, eksport CSV i filtry.</p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function DashboardContent() {
   const { state, dispatch } = useAppContext();
+  const [activePage, setActivePage] = useState<'dashboard' | 'analysis'>(
+    window.location.hash === '#analiza-danych' ? 'analysis' : 'dashboard'
+  );
+
   const liveMetrics = useLiveMetrics();
   const { lastSeen } = useConnectionHealth(liveMetrics.data);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setActivePage(window.location.hash === '#analiza-danych' ? 'analysis' : 'dashboard');
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
   const refreshDashboard = useCallback(() => {
     window.location.reload();
   }, []);
+
+  const openAnalysis = useCallback(() => {
+    window.location.hash = '#analiza-danych';
+    setActivePage('analysis');
+  }, []);
+
+  const backToDashboard = useCallback(() => {
+    window.location.hash = '';
+    setActivePage('dashboard');
+  }, []);
+
+  if (activePage === 'analysis') {
+    return <DataAnalysisPage onBack={backToDashboard} />;
+  }
 
   return (
     <>
@@ -50,6 +85,7 @@ function DashboardContent() {
           motionEnabled={state.motionEnabled}
           onToggleMotion={() => dispatch({ type: 'TOGGLE_MOTION' })}
           onRefresh={refreshDashboard}
+          onOpenAnalysis={openAnalysis}
           connectionStatus={state.connectionStatus}
         />
         <MetaGrid liveTimestamp={liveMetrics.data?.ts} />
@@ -59,12 +95,9 @@ function DashboardContent() {
           connectionStatus={state.connectionStatus}
           lastSeen={lastSeen}
         />
-        <Suspense fallback={<SectionFallback label="Ładowanie historii danych" title="Historia ładuje się..." />}>
-          <HistoryPanel liveRecord={liveMetrics.data} />
-        </Suspense>
-        <Suspense fallback={<SectionFallback label="Ładowanie sekcji PMS" title="PMS ładuje się..." className="panel pms-section" />}>
-          <PmsSection />
-        </Suspense>
+        <HistoryPanel liveRecord={liveMetrics.data} />
+        <PmsSection />
+        <Ens160Section />
         <AlertsSection />
         <Footer />
       </main>
