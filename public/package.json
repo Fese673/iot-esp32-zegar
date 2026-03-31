@@ -1,0 +1,11 @@
+{
+  "name": "iot-esp32-zegar-workspace",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix ./ticking-bomb-react run dev",
+    "build": "npm --prefix ./ticking-bomb-react run build",
+    "lint": "npm --prefix ./ticking-bomb-react run lint",
+    "test": "npm --prefix ./ticking-bomb-react run test",
+    "preview": "npm --prefix ./ticking-bomb-react run preview"
+  }
+}

@@ -33,44 +33,63 @@ export function DeviceTelemetryProvider({ children }: { children: ReactNode }) {
       }
     }, 4_000);
 
-    const deviceId = getRuntimeDeviceId();
-    const liveRef = ref(getFirebaseDb(), `devices/${deviceId}/latest`);
+    let unsubscribe: (() => void) | null = null;
 
-    const unsubscribe = onValue(
-      liveRef,
-      (snapshot) => {
-        const value = snapshot.val();
-        if (!value || typeof value !== 'object') {
-          return;
-        }
+    try {
+      const deviceId = getRuntimeDeviceId();
+      const liveRef = ref(getFirebaseDb(), `devices/${deviceId}/latest`);
 
-        hasReceivedDataRef.current = true;
-        setLatestRaw(value as Record<string, unknown>);
-        setLatestRevision((current) => current + 1);
-        setStatus('loaded');
+      unsubscribe = onValue(
+        liveRef,
+        (snapshot) => {
+          const value = snapshot.val();
+          if (!value || typeof value !== 'object') {
+            return;
+          }
 
-        if (!hasAnnouncedSuccessRef.current) {
-          hasAnnouncedSuccessRef.current = true;
-          pushAlert({ level: 'success', message: 'Połączenie z urządzeniem aktywne.', autoDismiss: true });
-        }
-      },
-      (error) => {
-        hasReceivedDataRef.current = true;
-        setLatestRaw(null);
-        setStatus('error');
-        pushAlert({
-          level: 'error',
-          message: error.message.includes('permission')
-            ? 'Brak dostępu do Firebase — sprawdź reguły bazy.'
-            : 'Błąd odczytu danych live z Firebase.',
-          autoDismiss: false,
-        });
-      },
-    );
+          hasReceivedDataRef.current = true;
+          setLatestRaw(value as Record<string, unknown>);
+          setLatestRevision((current) => current + 1);
+          setStatus('loaded');
+
+          if (!hasAnnouncedSuccessRef.current) {
+            hasAnnouncedSuccessRef.current = true;
+            pushAlert({ level: 'success', message: 'Połączenie z urządzeniem aktywne.', autoDismiss: true });
+          }
+        },
+        (error) => {
+          hasReceivedDataRef.current = true;
+          setLatestRaw(null);
+          setStatus('error');
+          pushAlert({
+            level: 'error',
+            message: error.message.includes('permission')
+              ? 'Brak dostępu do Firebase — sprawdź reguły bazy.'
+              : 'Błąd odczytu danych live z Firebase.',
+            autoDismiss: false,
+          });
+        },
+      );
+    } catch (error) {
+      hasReceivedDataRef.current = true;
+      setLatestRaw(null);
+      setStatus('error');
+
+      const rawMessage = error instanceof Error ? error.message : String(error);
+      const normalizedMessage = rawMessage.toLowerCase();
+
+      pushAlert({
+        level: 'error',
+        message: normalizedMessage.includes('database') && normalizedMessage.includes('url')
+          ? 'Nieprawidłowy databaseURL Firebase — użyj adresu root bazy (bez /devices/.../latest).'
+          : 'Błąd inicjalizacji Firebase — sprawdź konfigurację bazy.',
+        autoDismiss: false,
+      });
+    }
 
     return () => {
       window.clearTimeout(timeoutId);
-      unsubscribe();
+      unsubscribe?.();
     };
   }, [pushAlert]);
 

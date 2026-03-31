@@ -13,7 +13,7 @@ function MetaGrid({ liveTimestamp }: MetaGridProps) {
       <article className="stat-card meta-card">
         <header className="stat-top">
           <p className="label">Projekt działa od</p>
-          <img src="/elektryk.gif" id="uptimeGif" className="uptime-gif" alt="Uptime indicator" />
+          <img src="/elektryk-2.gif" id="uptimeGif" className="uptime-gif" alt="Uptime indicator" />
         </header>
         <p className="value mono" id="uptimeValue">{clock.startMs ? formatDateTime(clock.startMs) : '--'}</p>
         <p className="muted" id="projectStartTime">{clock.source === 'device' ? 'Źródło: device' : 'Źródło: local'}</p>

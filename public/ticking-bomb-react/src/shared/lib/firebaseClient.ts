@@ -16,7 +16,9 @@ export function getFirebaseApp(): FirebaseApp {
 
   const config = resolveFirebaseConfig();
   if (!config.apiKey || !config.authDomain || !config.projectId || !config.databaseURL) {
-    throw new Error('Missing Firebase configuration. Check firebase-config.js.');
+    throw new Error(
+      'Missing or invalid Firebase configuration. Check firebase-config.js and ensure databaseURL points to the RTDB root (without child path).',
+    );
   }
 
   firebaseApp = getApps().length > 0 ? getApp() : initializeApp(config);

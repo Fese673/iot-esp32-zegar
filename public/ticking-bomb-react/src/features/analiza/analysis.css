@@ -226,6 +226,10 @@
   isolation: isolate;
 }
 
+.analysis-grid--secondary {
+  margin-top: 4px;
+}
+
 .analysis-card {
   position: relative;
   overflow: hidden;

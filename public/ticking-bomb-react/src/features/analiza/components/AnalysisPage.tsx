@@ -11,6 +11,11 @@ import {
 import katex from 'katex';
 import type { ConnectionStatus, LiveRecord, LoadState } from '../../../shared/types';
 import { formatDateTime, toEpochMs } from '../../../shared/lib/timeHelpers';
+import { toDateKey } from '../../../shared/lib/dateHelpers';
+import { useHistoryData } from '../../dashboard/hooks/useHistoryData';
+import { useEns160Live } from '../../ens160/hooks/useEns160Live';
+import { usePmsLive } from '../../pms/hooks/usePmsLive';
+import { extractPmRawLike } from '../../pms/lib/pmsHelpers';
 import {
   computeComfortScore,
   computeThermalMetrics,
@@ -21,6 +26,14 @@ import {
   type ComfortDescriptor,
   type ComfortTone,
 } from '../lib/comfortAlgorithms';
+import {
+  computeBarometricTrend,
+  computeEns160SourceRatio,
+  computeHygroscopicPmCorrection,
+  computeRespiratoryLoadIndex,
+  describeEns160SourceAttribution,
+  describeRespiratoryLoadIndex,
+} from '../lib/insightAlgorithms';
 import '../analysis.css';
 import 'katex/dist/katex.min.css';
 
@@ -42,6 +55,7 @@ interface MetricCardModel {
   formula: string;
   helper: string;
   descriptor: ComfortDescriptor;
+  scaleLabel?: string;
   min: number;
   max: number;
   idealMin: number;
@@ -101,13 +115,15 @@ function formatMetricWithUnit(value: number | null, precision: number, unit: str
     return '--';
   }
 
-  const unitSpacer = unit === '°C' || unit === '%' ? '' : ' ';
-  return `${value.toFixed(precision)}${unitSpacer}${unit}`;
+  const trimmedUnit = unit.trim();
+  const unitSpacer = trimmedUnit === '' || trimmedUnit === '°C' || trimmedUnit === '%' ? '' : ' ';
+  return `${value.toFixed(precision)}${unitSpacer}${trimmedUnit}`;
 }
 
 function formatRangeWithUnit(min: number, max: number, unit: string): string {
-  const unitSpacer = unit === '°C' || unit === '%' ? '' : ' ';
-  return `${min}–${max}${unitSpacer}${unit}`;
+  const trimmedUnit = unit.trim();
+  const unitSpacer = trimmedUnit === '' || trimmedUnit === '°C' || trimmedUnit === '%' ? '' : ' ';
+  return `${min}–${max}${unitSpacer}${trimmedUnit}`;
 }
 
 function toneClass(tone: ComfortTone): string {
@@ -242,7 +258,7 @@ function AnalysisMetricCard({
           {pointer != null ? <span className="analysis-scale-pointer" style={{ left: `${pointer}%` }}></span> : null}
         </div>
         <p className="analysis-scale-label">
-          Komfort: {formatRangeWithUnit(metric.idealMin, metric.idealMax, metric.unit)}
+          {metric.scaleLabel ?? 'Komfort'}: {formatRangeWithUnit(metric.idealMin, metric.idealMax, metric.unit)}
         </p>
       </div>
 
@@ -302,6 +318,11 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
   const detailEntranceDirectionRef = useRef<-1 | 1>(1);
   const detailEnterAnimationRef = useRef<Animation | null>(null);
 
+  const analysisDateKey = useMemo(() => toDateKey(liveRecord?.ts ?? Date.now()), [liveRecord]);
+  const historyData = useHistoryData(analysisDateKey);
+  const pmsLive = usePmsLive();
+  const ens160Live = useEns160Live();
+
   const thermal = useMemo(() => {
     if (!liveRecord) {
       return null;
@@ -315,7 +336,9 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
 
   const score = useMemo(() => (thermal ? computeComfortScore(thermal) : null), [thermal]);
 
-  const cards = useMemo<MetricCardModel[]>(() => {
+  const pmsRaw = useMemo(() => extractPmRawLike(pmsLive.data), [pmsLive.data]);
+
+  const metricCards = useMemo<MetricCardModel[]>(() => {
     if (!thermal) {
       return [];
     }
@@ -331,6 +354,7 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
         formula: 'Punkt rosy (Alduchov/Eskridge 1996): $T_d = \\frac{b \\cdot \\gamma}{a - \\gamma}, \\gamma = \\ln\\left(\\frac{RH}{100}\\right) + \\frac{a \\cdot T}{b + T}$',
         helper: 'Dokładność około 0,1°C dla przedziału −40–60°C.',
         descriptor: describeDewPoint(thermal.dewPointC),
+        scaleLabel: 'Komfort',
         min: -20,
         max: 30,
         idealMin: 10,
@@ -346,6 +370,7 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
         formula: 'Humidex: $H = T + \\frac{5}{9}(e - 10),\\; e = \\frac{RH}{100} \\cdot 6.112 \\cdot \\exp\\left(\\frac{17.67T}{T + 243.5}\\right)$',
         helper: 'Łączy temperaturę i parę rzeczywistą w jeden indeks odczuwalny.',
         descriptor: describeHumidex(thermal.humidex),
+        scaleLabel: 'Komfort',
         min: 10,
         max: 50,
         idealMin: 20,
@@ -361,6 +386,7 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
         formula: 'Indeks ciepła NWS: $HI_F = -42.379 + 2.04901523T_F + 10.14333127RH - 0.22475541T_FRH - 0.00683783T_F^2 - 0.05481717RH^2 + 0.00122874T_F^2RH + 0.00085282T_FRH^2 - 0.00000199T_F^2RH^2$',
         helper: 'Wynik N/A oznacza, że warunki są poza zakresem modelu NWS.',
         descriptor: describeHeatIndex(thermal.heatIndexC),
+        scaleLabel: 'Strefa',
         min: 20,
         max: 60,
         idealMin: 23,
@@ -376,6 +402,7 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
         formula: 'Wilgotność bezwzględna: $\\rho_v = \\frac{216.7 \\cdot e}{273.15 + T}$',
         helper: 'Docelowo dla pomieszczeń zwykle 5–15 g/m³.',
         descriptor: describeAbsoluteHumidity(thermal.absoluteHumidityGm3),
+        scaleLabel: 'Norma',
         min: 0,
         max: 24,
         idealMin: 5,
@@ -384,8 +411,98 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
     ];
   }, [thermal]);
 
+  const insightCards = useMemo<MetricCardModel[]>(() => {
+    if (!thermal) {
+      return [];
+    }
+
+    const pm25 = pmsRaw?.pm25 ?? null;
+    const tvoc = ens160Live.data?.tvoc ?? null;
+    const eco2 = ens160Live.data?.eco2 ?? null;
+
+    const respiratoryLoad = computeRespiratoryLoadIndex(pm25, eco2, tvoc);
+    const sourceRatio = computeEns160SourceRatio(tvoc, eco2);
+    const barometricTrend = computeBarometricTrend(historyData.points, liveRecord?.ts ?? Number.NaN, liveRecord?.p ?? Number.NaN);
+    const hygroscopicCorrection = computeHygroscopicPmCorrection(pm25, thermal.relativeHumidity);
+
+    return [
+      {
+        id: 'respiratory-load',
+        title: 'Obciążenie oddechowe',
+        shortLabel: 'ROI',
+        value: respiratoryLoad,
+        unit: 'ROI',
+        precision: 2,
+        formula: 'Obciążenie oddechowe: $ROI = 0.8 + 0.04\\,PM_{2.5} + 0.001\\,eCO_2 + 0.004\\,TVOC$ (model przybliżony)',
+        helper: respiratoryLoad == null
+          ? 'Wymagane są jednocześnie PM2.5, eCO2 i TVOC.'
+          : `ROI = ${respiratoryLoad.toFixed(2)} to liniowe przybliżenie obciążenia układu oddechowego. W praktyce wpływ zanieczyszczeń rośnie nieliniowo, a powyżej PM2.5 > 50 powinien szybciej narastać.`,
+        descriptor: describeRespiratoryLoadIndex(respiratoryLoad),
+        scaleLabel: 'Norma',
+        min: 0.5,
+        max: 6,
+        idealMin: 1,
+        idealMax: 2.5,
+      },
+      {
+        id: 'source-attribution',
+        title: 'Klasyfikacja źródła emisji',
+        shortLabel: 'ENS160 Source',
+        value: sourceRatio,
+        unit: '',
+        precision: 3,
+        formula: 'Stosunek źródła: $R = TVOC / eCO_2$',
+        helper: sourceRatio == null
+          ? 'Wymagane są jednocześnie TVOC i eCO2.'
+          : `TVOC/eCO2 = ${sourceRatio.toFixed(3)}. Niska wartość zwykle oznacza źródło metaboliczne, a nie chemiczne.`,
+        descriptor: describeEns160SourceAttribution(sourceRatio),
+        scaleLabel: 'Próg metaboliczny',
+        min: 0,
+        max: 0.6,
+        idealMin: 0,
+        idealMax: 0.25,
+      },
+      {
+        id: 'barometric-trend',
+        title: 'Trend barometryczny',
+        shortLabel: 'BMP280',
+        value: barometricTrend.deltaHpa,
+        unit: 'hPa/3h',
+        precision: 1,
+        formula: 'Trend 3h: $\\Delta P = P_t - P_{t-3h}$',
+        helper: barometricTrend.deltaHpa == null
+          ? 'Wymagany jest aktualny odczyt ciśnienia oraz co najmniej jeden punkt wsteczny z ostatnich 3 godzin.'
+          : `Zmiana ciśnienia o ${barometricTrend.deltaHpa.toFixed(1)} hPa w 3 godziny pozwala ocenić kierunek lokalnej pogody.`,
+        descriptor: barometricTrend.descriptor,
+        scaleLabel: 'Stabilność',
+        min: -5,
+        max: 5,
+        idealMin: -0.5,
+        idealMax: 0.5,
+      },
+      {
+        id: 'pm-hygroscopic-correction',
+        title: 'Korekta higroskopijna PM',
+        shortLabel: 'PMS5003 x AHT21',
+        value: hygroscopicCorrection.correctedPm25,
+        unit: 'µg/m³',
+        precision: 1,
+        formula: 'Korekta wilgotności: $PM_{2.5}^{corr} = PM_{2.5} \\cdot (1 - C_{RH})$ (przybliżenie)',
+        helper: hygroscopicCorrection.correctedPm25 == null
+          ? 'Wymagane są jednocześnie PM2.5 i wilgotność względna.'
+          : `Wilgotność obniżyła wynik o ${hygroscopicCorrection.reductionPercent?.toFixed(0) ?? '0'}%, więc pokazujemy ${hygroscopicCorrection.correctedPm25.toFixed(1)} µg/m³ jako bliższy rzeczywistości odczyt. Najdokładniejszy model korekty jest nieliniowy: 1 / (1 - RH/100), a wzór liniowy jest dobrym przybliżeniem dla 30–60% RH.`,
+        descriptor: hygroscopicCorrection.descriptor,
+        scaleLabel: 'WHO',
+        min: 0,
+        max: 40,
+        idealMin: 0,
+        idealMax: 15,
+      },
+    ];
+  }, [ens160Live.data, historyData.points, liveRecord, pmsRaw, thermal]);
+
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
       return;
     }
 
@@ -479,10 +596,10 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
     [],
   );
 
-  const metricCardIdsKey = useMemo(() => cards.map((card) => card.id).join('|'), [cards]);
+  const metricCardIdsKey = useMemo(() => metricCards.map((card) => card.id).join('|'), [metricCards]);
 
   useLayoutEffect(() => {
-    if (!desktopMotionEnabled || introPlayedRef.current || detailCardId || flyOutCardId || cards.length === 0) {
+    if (!desktopMotionEnabled || introPlayedRef.current || detailCardId || flyOutCardId || metricCards.length === 0) {
       return;
     }
 
@@ -550,7 +667,7 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
       });
       setIntroRunning(false);
     };
-  }, [cards.length, detailCardId, desktopMotionEnabled, flyOutCardId, metricCardIdsKey]);
+  }, [detailCardId, desktopMotionEnabled, flyOutCardId, metricCardIdsKey, metricCards.length]);
 
   const recommendations = useMemo(() => {
     if (!thermal) {
@@ -761,7 +878,7 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
           </section>
 
           <section className="analysis-grid" aria-label="Wskaźniki fizyczne" ref={gridRef}>
-            {cards.map((card) => {
+            {metricCards.map((card) => {
               const isDetail = openDetailIds.has(card.id);
               const cardClasses = !interactionLocked ? 'analysis-card-clickable' : '';
 
@@ -786,6 +903,12 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
                 />
               );
             })}
+          </section>
+
+          <section className="analysis-grid analysis-grid--secondary" aria-label="Wskaźniki rozszerzone">
+            {insightCards.map((card) => (
+              <AnalysisMetricCard key={card.id} metric={card} />
+            ))}
           </section>
 
           <section className="panel analysis-cockpit" style={cockpitStyle}>

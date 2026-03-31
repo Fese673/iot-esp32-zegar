@@ -27,7 +27,7 @@ function TopBar({ motionEnabled, onToggleMotion, onRefresh, onOpenAnalysis, conn
       <div className="topbar-left">
         <div className="brand">
           <div className="brand-mark" aria-label="Bomba">
-            <img src="/bomba.gif" id="bombGif" alt="Bomba" />
+            <img src="/bomba-2.gif" id="bombGif" alt="Bomba" />
           </div>
         </div>
         <div className="status-pill" id="statusIndicator" role="status" aria-live="polite">
