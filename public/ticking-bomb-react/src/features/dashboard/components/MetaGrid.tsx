@@ -1,9 +1,24 @@
+import { forwardRef, memo } from 'react';
 import { useClock } from '../hooks/useClock';
 import { formatDateTime } from '../../../shared/lib/timeHelpers';
 
 interface MetaGridProps {
   liveTimestamp?: number;
 }
+
+interface ClockValueProps {
+  value: string;
+}
+
+const ClockValue = memo(
+  forwardRef<HTMLParagraphElement, ClockValueProps>(function ClockValue({ value }, ref) {
+    return (
+      <p className="value mono" id="ntpClockValue" ref={ref}>
+        {value}
+      </p>
+    );
+  }),
+);
 
 function MetaGrid({ liveTimestamp }: MetaGridProps) {
   const clock = useClock(liveTimestamp);
@@ -24,7 +39,7 @@ function MetaGrid({ liveTimestamp }: MetaGridProps) {
           <p className="label">Dokładny czas systemowy</p>
           <span className="tag live">NTP</span>
         </header>
-        <p className="value mono" id="ntpClockValue">{clock.displayTime}</p>
+        <ClockValue value={clock.displayTime} />
         <p className="muted" id="ntpClockMeta">
           {clock.source === 'device'
             ? `Źródło: device${clock.rtt != null ? ` • RTT ~${Math.round(clock.rtt)} ms` : ''}`

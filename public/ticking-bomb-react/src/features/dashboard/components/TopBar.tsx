@@ -3,12 +3,20 @@ interface TopBarProps {
   onToggleMotion: () => void;
   onRefresh: () => void;
   onOpenAnalysis: () => void;
+  onOpenDocumentation: () => void;
   connectionStatus: 'connected' | 'reconnecting' | 'disconnected';
 }
 
 const TITLE_TEXT = 'T I C K I N G • B O M B';
 
-function TopBar({ motionEnabled, onToggleMotion, onRefresh, onOpenAnalysis, connectionStatus }: TopBarProps) {
+function TopBar({
+  motionEnabled,
+  onToggleMotion,
+  onRefresh,
+  onOpenAnalysis,
+  onOpenDocumentation,
+  connectionStatus,
+}: TopBarProps) {
   const statusLabel =
     connectionStatus === 'connected'
       ? 'Online'
@@ -56,6 +64,9 @@ function TopBar({ motionEnabled, onToggleMotion, onRefresh, onOpenAnalysis, conn
       <div className="topbar-right">
         <button className="ghost-btn" id="toggleMotion" type="button" aria-pressed={motionEnabled} onClick={onToggleMotion}>
           Animacje: {motionEnabled ? 'włączone' : 'wyłączone'}
+        </button>
+        <button className="primary-btn" id="btnDocumentation" type="button" onClick={onOpenDocumentation}>
+          📘 Dokumentacja
         </button>
         <button className="primary-btn" id="btnDataAnalysis" type="button" onClick={onOpenAnalysis}>
           📊 Analiza danych

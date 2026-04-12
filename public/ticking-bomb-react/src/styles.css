@@ -42,6 +42,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html.analysis-page-active,
+body.analysis-page-active {
+  overflow-x: hidden;
+}
+
 .scanlines,
 .bg-grid {
   position: fixed;

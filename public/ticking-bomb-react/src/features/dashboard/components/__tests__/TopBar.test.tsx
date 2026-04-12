@@ -22,6 +22,7 @@ describe('TopBar', () => {
           onToggleMotion={onToggleMotion}
           onRefresh={onRefresh}
           onOpenAnalysis={vi.fn()}
+          onOpenDocumentation={vi.fn()}
           connectionStatus="connected"
         />,
       );
@@ -57,6 +58,7 @@ describe('TopBar', () => {
           onToggleMotion={() => undefined}
           onRefresh={() => undefined}
           onOpenAnalysis={() => undefined}
+          onOpenDocumentation={() => undefined}
           connectionStatus="reconnecting"
         />,
       );
@@ -71,6 +73,7 @@ describe('TopBar', () => {
           onToggleMotion={() => undefined}
           onRefresh={() => undefined}
           onOpenAnalysis={() => undefined}
+          onOpenDocumentation={() => undefined}
           connectionStatus="disconnected"
         />,
       );

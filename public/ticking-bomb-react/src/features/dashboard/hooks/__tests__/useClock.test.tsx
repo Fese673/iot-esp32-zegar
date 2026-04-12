@@ -4,6 +4,7 @@ import { act } from 'react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { AppContext, type AppContextValue } from '../../../../shared/context/AppContext';
+import { formatClock } from '../../../../shared/lib/timeHelpers';
 import { useClock } from '../useClock';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -12,8 +13,9 @@ function Probe({ ts }: { ts?: number }) {
   const clock = useClock(ts);
   return (
     <div>
-      <span data-testid="epoch-time">{clock.displayTime}</span>
+      <span id="ntpClockValue" data-testid="epoch-time">{clock.displayTime}</span>
       <span data-testid="clock-source">{clock.source}</span>
+      <span data-testid="clock-snapshot">{clock.displayTime}</span>
     </div>
   );
 }
@@ -67,6 +69,38 @@ describe('useClock', () => {
     const afterFast = container.querySelector('[data-testid="epoch-time"]')?.textContent;
     expect(afterFast).toBeTruthy();
     expect(afterFast).not.toEqual(initial);
+
+    const snapshot = container.querySelector('[data-testid="clock-snapshot"]')?.textContent;
+    expect(snapshot).toEqual(initial);
+
+    await act(async () => {
+      root.unmount();
+    });
+
+    document.body.removeChild(container);
+  });
+
+  test('falls back to local time when the device clock drifts too far', async () => {
+    const baseNow = 1_700_000_000_000;
+    vi.setSystemTime(baseNow);
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <AppContext.Provider value={value}>
+          <Probe ts={baseNow - 6 * 60_000} />
+        </AppContext.Provider>,
+      );
+    });
+
+    const source = container.querySelector('[data-testid="clock-source"]')?.textContent;
+    expect(source).toBe('local');
+
+    const time = container.querySelector('[data-testid="epoch-time"]')?.textContent;
+    expect(time).toBe(formatClock(baseNow));
 
     await act(async () => {
       root.unmount();

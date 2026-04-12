@@ -109,3 +109,20 @@ WantedBy=multi-user.target
 - Brak reverse proxy (Caddy/Nginx) i TLS/HTTPS w obecnej konfiguracji — priorytet do wdrożenia.
 - Brak formalnej procedury backup/restore oraz aktualizacji obrazu.
 
+dla pocketbase superuser używać ostrożnie tylko gdy jesteś pewno że dobrze myslisz 
+hasło weron2121 
+email weron@example.com
+
+połacz sie tak np PS C:\Users\PC> ssh weron@192.168.1.16
+weron@192.168.1.16's password:
+Linux WERON 6.12.75+rpt-rpi-v8 #1 SMP PREEMPT Debian 1:6.12.75-1+rpt1 (2026-03-11) aarch64
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+Last login: Tue Mar 31 18:59:54 2026 from 192.168.1.26
+weron@WERON:~ $ ls
+weron@WERON:~ $

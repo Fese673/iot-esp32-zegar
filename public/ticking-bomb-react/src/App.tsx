@@ -15,6 +15,21 @@ import PmsSection from './features/pms/components/PmsSection';
 import Ens160Section from './features/ens160/components/Ens160Section';
 
 const AnalysisPage = lazy(() => import('./features/analiza/components/AnalysisPage'));
+const DocumentationPage = lazy(() => import('./features/dokumentacja/components/DocumentationPage'));
+
+type ActivePage = 'dashboard' | 'analysis' | 'documentation';
+
+function resolveActivePageFromHash(hash: string): ActivePage {
+  if (hash.startsWith('#analiza-danych')) {
+    return 'analysis';
+  }
+
+  if (hash.startsWith('#dokumentacja')) {
+    return 'documentation';
+  }
+
+  return 'dashboard';
+}
 
 declare global {
   interface Window {
@@ -24,21 +39,30 @@ declare global {
 
 function DashboardContent() {
   const { state, dispatch } = useAppContext();
-  const [activePage, setActivePage] = useState<'dashboard' | 'analysis'>(
-    window.location.hash === '#analiza-danych' ? 'analysis' : 'dashboard'
-  );
+  const [activePage, setActivePage] = useState<ActivePage>(() => resolveActivePageFromHash(window.location.hash));
 
   const liveMetrics = useLiveMetrics();
   const { lastSeen } = useConnectionHealth(liveMetrics.data);
 
   useEffect(() => {
     const handleHashChange = () => {
-      setActivePage(window.location.hash === '#analiza-danych' ? 'analysis' : 'dashboard');
+      setActivePage(resolveActivePageFromHash(window.location.hash));
     };
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  useEffect(() => {
+    const active = activePage === 'analysis';
+    document.documentElement.classList.toggle('analysis-page-active', active);
+    document.body.classList.toggle('analysis-page-active', active);
+
+    return () => {
+      document.documentElement.classList.remove('analysis-page-active');
+      document.body.classList.remove('analysis-page-active');
+    };
+  }, [activePage]);
 
   const refreshDashboard = useCallback(() => {
     window.location.reload();
@@ -47,6 +71,11 @@ function DashboardContent() {
   const openAnalysis = useCallback(() => {
     window.location.hash = '#analiza-danych';
     setActivePage('analysis');
+  }, []);
+
+  const openDocumentation = useCallback(() => {
+    window.location.hash = '#dokumentacja';
+    setActivePage('documentation');
   }, []);
 
   const backToDashboard = useCallback(() => {
@@ -79,6 +108,25 @@ function DashboardContent() {
     );
   }
 
+  if (activePage === 'documentation') {
+    return (
+      <Suspense
+        fallback={
+          <main className="app-shell">
+            <section className="panel analysis-empty" aria-live="polite">
+              <h3>Ladowanie modulu dokumentacji</h3>
+              <p>Doczytuje sie komplet sekcji i markdown.</p>
+            </section>
+          </main>
+        }
+      >
+        <div className="scanlines" aria-hidden="true"></div>
+        <div className="bg-grid" aria-hidden="true"></div>
+        <DocumentationPage onBack={backToDashboard} />
+      </Suspense>
+    );
+  }
+
   return (
     <>
       <div className="scanlines" aria-hidden="true"></div>
@@ -90,6 +138,7 @@ function DashboardContent() {
           onToggleMotion={() => dispatch({ type: 'TOGGLE_MOTION' })}
           onRefresh={refreshDashboard}
           onOpenAnalysis={openAnalysis}
+          onOpenDocumentation={openDocumentation}
           connectionStatus={state.connectionStatus}
         />
         <MetaGrid liveTimestamp={liveMetrics.data?.ts} />

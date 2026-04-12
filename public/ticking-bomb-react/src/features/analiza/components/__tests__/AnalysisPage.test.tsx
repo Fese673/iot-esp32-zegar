@@ -52,7 +52,7 @@ describe('AnalysisPage extended tiles', () => {
     });
   });
 
-  test('renders four additional static insight cards below the animated metrics', async () => {
+  test('renders four additional insight cards with the same interactive back face', async () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -74,14 +74,21 @@ describe('AnalysisPage extended tiles', () => {
 
     const secondaryCards = container.querySelectorAll('.analysis-grid--secondary .analysis-card');
     expect(secondaryCards.length).toBe(4);
-    expect(Array.from(secondaryCards).every((card) => !card.className.includes('analysis-card-clickable'))).toBe(true);
+    expect(Array.from(secondaryCards).every((card) => card.className.includes('analysis-card-clickable'))).toBe(true);
+
+    await act(async () => {
+      secondaryCards[0]?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(container.querySelector('.analysis-grid--secondary .analysis-detail-card')).not.toBeNull();
+    expect(container.textContent).toContain('ROI sumuje pyły i gazy');
 
     expect(container.textContent).toContain('Obciążenie oddechowe');
     expect(container.textContent).toContain('Podwyższony');
     expect(container.textContent).toContain('Metaboliczne');
     expect(container.textContent).toContain('Opadający');
     expect(container.textContent).toContain('W normie WHO');
-    expect(container.textContent).toContain('nieliniowo');
+    expect(container.textContent).toContain('nieliniowy');
     expect(container.textContent).toContain('1 / (1 - RH/100)');
 
     await act(async () => {

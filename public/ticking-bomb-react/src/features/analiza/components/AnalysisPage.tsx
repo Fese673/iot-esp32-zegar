@@ -68,14 +68,24 @@ interface MetricInsightCopy {
   action: string;
 }
 
-const INTRO_CARD_ORDER = ['dew-point', 'humidex', 'heat-index', 'absolute-humidity'] as const;
+const ANALYSIS_CARD_ORDER = [
+  'dew-point',
+  'humidex',
+  'heat-index',
+  'absolute-humidity',
+  'respiratory-load',
+  'source-attribution',
+  'barometric-trend',
+  'pm-hygroscopic-correction',
+] as const;
 const INTRO_DURATION_MS = 860;
 const INTRO_STAGGER_MS = 90;
 const FLYOUT_DURATION_MS = 430;
 const DETAIL_APPEAR_DELAY_MS = 170;
 const DETAIL_ENTER_DURATION_MS = 620;
+const ANALYSIS_CARD_TRAVEL_MARGIN = 72;
 
-const METRIC_INSIGHT_COPY: Record<string, MetricInsightCopy> = {
+const ANALYSIS_DETAIL_COPY: Record<string, MetricInsightCopy> = {
   'dew-point': {
     headline: 'Określa temperaturę, przy której para wodna zaczyna się skraplać.',
     impact: 'Im wyższy punkt rosy, tym szybciej pojawia się uczucie duszności i ryzyko kondensacji na chłodnych powierzchniach.',
@@ -96,6 +106,26 @@ const METRIC_INSIGHT_COPY: Record<string, MetricInsightCopy> = {
     impact: 'Ten parametr lepiej od RH pokazuje, ile wilgoci faktycznie jest w pomieszczeniu i jak obciąża wentylację.',
     action: 'Najczęściej dobry punkt pracy dla wnętrz to okolice 5–15 g/m³, zależne od sezonu i typu budynku.',
   },
+  'respiratory-load': {
+    headline: 'ROI sumuje pyły i gazy, żeby szybciej wychwycić obciążenie układu oddechowego.',
+    impact: 'Wysoki wynik zwykle oznacza, że jednocześnie rosną PM2.5, eCO2 i TVOC, więc problem dotyczy nie jednego, a kilku kanałów jakości powietrza.',
+    action: 'Najpierw przewietrz, potem sprawdź, który składnik podbija ROI najbardziej.',
+  },
+  'source-attribution': {
+    headline: 'Stosunek TVOC do eCO2 pomaga odróżnić źródła metaboliczne od chemicznych.',
+    impact: 'Niski wskaźnik zwykle wskazuje na dominację oddechu ludzi i zwierząt. Wyższy poziom częściej oznacza emisję z materiałów, klejów albo środków czystości.',
+    action: 'Jeśli wskaźnik rośnie, szukaj źródła lotnych związków i popraw wymianę powietrza.',
+  },
+  'barometric-trend': {
+    headline: 'Trend 3h pokazuje kierunek zmian ciśnienia i daje szybki sygnał pogody.',
+    impact: 'Spadek ciśnienia nie mówi jeszcze wszystkiego, ale dobrze ostrzega przed pogorszeniem warunków atmosferycznych, zanim zmiana będzie odczuwalna.',
+    action: 'Łącz trend z historią kilku godzin, a nie z pojedynczym pomiarem.',
+  },
+  'pm-hygroscopic-correction': {
+    headline: 'Korekta higroskopijna usuwa część błędu wynikającego z wilgotności.',
+    impact: 'Przy wysokim RH sensor pyłu potrafi zawyżać wynik, bo cząstki chłoną wodę i optycznie wyglądają na większe. Korekta przybliża odczyt do rzeczywistego aerozolu.',
+    action: 'Przy RH powyżej 60% traktuj surowy PM z ostrożnością i patrz na trend.',
+  },
 };
 
 function clamp(value: number, min: number, max: number): number {
@@ -108,6 +138,15 @@ function toPercent(value: number, min: number, max: number): number {
   }
 
   return clamp(((value - min) / (max - min)) * 100, 0, 100);
+}
+
+function computeOffscreenTravel(element: HTMLElement, direction: -1 | 1, viewportWidth: number): number {
+  const rect = element.getBoundingClientRect();
+  const travel = direction === 1
+    ? viewportWidth - rect.left + ANALYSIS_CARD_TRAVEL_MARGIN
+    : rect.right + ANALYSIS_CARD_TRAVEL_MARGIN;
+
+  return Math.max(ANALYSIS_CARD_TRAVEL_MARGIN, travel);
 }
 
 function formatMetricWithUnit(value: number | null, precision: number, unit: string): string {
@@ -159,19 +198,11 @@ function connectionLabel(status: ConnectionStatus): string {
 }
 
 function MathFormula({ formula, variant = 'compact' }: { formula: string; variant?: 'compact' | 'detail' }) {
-  const { prefix, mathExpression } = useMemo(() => {
-    const firstDelimiter = formula.indexOf('$');
-    const lastDelimiter = formula.lastIndexOf('$');
-
-    if (firstDelimiter === -1 || lastDelimiter <= firstDelimiter) {
-      return { prefix: formula, mathExpression: null as string | null };
-    }
-
-    return {
-      prefix: formula.slice(0, firstDelimiter),
-      mathExpression: formula.slice(firstDelimiter + 1, lastDelimiter),
-    };
-  }, [formula]);
+  const firstDelimiter = formula.indexOf('$');
+  const lastDelimiter = formula.lastIndexOf('$');
+  const hasMathExpression = firstDelimiter !== -1 && lastDelimiter > firstDelimiter;
+  const prefix = hasMathExpression ? formula.slice(0, firstDelimiter) : formula;
+  const mathExpression = hasMathExpression ? formula.slice(firstDelimiter + 1, lastDelimiter) : null;
 
   const renderedMath = useMemo(() => {
     if (!mathExpression) {
@@ -277,7 +308,7 @@ function AnalysisDetailCard({
   onClose: () => void;
   cardRef?: (element: HTMLElement | null) => void;
 }) {
-  const insight = METRIC_INSIGHT_COPY[metric.id] ?? {
+  const insight = ANALYSIS_DETAIL_COPY[metric.id] ?? {
     headline: metric.descriptor.detail,
     impact: metric.helper,
     action: 'Utrzymuj ten wskaźnik w strefie komfortu i monitoruj trend godzinowy.',
@@ -309,16 +340,17 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
   const [openDetailIds, setOpenDetailIds] = useState<Set<string>>(new Set());
   const [introRunning, setIntroRunning] = useState(false);
   const [desktopMotionEnabled, setDesktopMotionEnabled] = useState(false);
+  const [analysisFallbackDateKey] = useState(() => toDateKey(Date.now()));
 
-  const gridRef = useRef<HTMLElement | null>(null);
   const cardRefs = useRef<Record<string, HTMLElement | null>>({});
   const detailCardRefs = useRef<Record<string, HTMLElement | null>>({});
   const introPlayedRef = useRef(false);
+  const introRunningFrameRef = useRef<number | null>(null);
   const detailRevealTimeoutRef = useRef<number | null>(null);
   const detailEntranceDirectionRef = useRef<-1 | 1>(1);
   const detailEnterAnimationRef = useRef<Animation | null>(null);
 
-  const analysisDateKey = useMemo(() => toDateKey(liveRecord?.ts ?? Date.now()), [liveRecord]);
+  const analysisDateKey = liveRecord ? toDateKey(liveRecord.ts) : analysisFallbackDateKey;
   const historyData = useHistoryData(analysisDateKey);
   const pmsLive = usePmsLive();
   const ens160Live = useEns160Live();
@@ -541,9 +573,7 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
     }
 
     const direction = detailEntranceDirectionRef.current;
-    const gridWidth = gridRef.current?.getBoundingClientRect().width ?? window.innerWidth;
-    const cardWidth = detailElement.getBoundingClientRect().width;
-    const travel = Math.max(window.innerWidth, gridWidth) + cardWidth + 180;
+    const travel = computeOffscreenTravel(detailElement, direction, window.innerWidth);
 
     detailEnterAnimationRef.current?.cancel();
     detailElement.classList.add('analysis-card-animating');
@@ -582,7 +612,7 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
     };
   }, [detailCardId, desktopMotionEnabled]);
 
-  const registerMetricCardRef = useCallback(
+  const registerCardRef = useCallback(
     (cardId: string) => (element: HTMLElement | null) => {
       cardRefs.current[cardId] = element;
     },
@@ -596,33 +626,37 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
     [],
   );
 
-  const metricCardIdsKey = useMemo(() => metricCards.map((card) => card.id).join('|'), [metricCards]);
+  const analysisCards = useMemo(() => [...metricCards, ...insightCards], [insightCards, metricCards]);
+  const analysisCardIdsKey = useMemo(() => analysisCards.map((card) => card.id).join('|'), [analysisCards]);
 
   useLayoutEffect(() => {
-    if (!desktopMotionEnabled || introPlayedRef.current || detailCardId || flyOutCardId || metricCards.length === 0) {
+    if (!desktopMotionEnabled || introPlayedRef.current || detailCardId || flyOutCardId || analysisCards.length === 0) {
       return;
     }
 
-    if (metricCardIdsKey !== INTRO_CARD_ORDER.join('|')) {
+    if (analysisCardIdsKey !== ANALYSIS_CARD_ORDER.join('|')) {
       return;
     }
 
-    const elements = INTRO_CARD_ORDER
+    const elements = ANALYSIS_CARD_ORDER
       .map((cardId) => cardRefs.current[cardId])
       .filter((element): element is HTMLElement => Boolean(element));
 
-    if (elements.length !== INTRO_CARD_ORDER.length || typeof elements[0].animate !== 'function') {
+    if (elements.length !== ANALYSIS_CARD_ORDER.length || typeof elements[0].animate !== 'function') {
       introPlayedRef.current = true;
       return;
     }
 
     introPlayedRef.current = true;
-    setIntroRunning(true);
+    introRunningFrameRef.current = window.requestAnimationFrame(() => {
+      introRunningFrameRef.current = null;
+      setIntroRunning(true);
+    });
 
     const viewportWidth = typeof window === 'undefined' ? 1200 : window.innerWidth;
     const animations = elements.map((element, index) => {
       const direction = index % 2 === 0 ? -1 : 1;
-      const travel = Math.max(viewportWidth, element.getBoundingClientRect().width * 3) + 140;
+      const travel = computeOffscreenTravel(element, direction, viewportWidth);
 
       element.classList.add('analysis-card-animating');
 
@@ -659,6 +693,10 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
 
     return () => {
       cancelled = true;
+      if (introRunningFrameRef.current != null) {
+        window.cancelAnimationFrame(introRunningFrameRef.current);
+        introRunningFrameRef.current = null;
+      }
       animations.forEach((animation) => animation.cancel());
       elements.forEach((element) => {
         element.classList.remove('analysis-card-animating');
@@ -667,7 +705,7 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
       });
       setIntroRunning(false);
     };
-  }, [detailCardId, desktopMotionEnabled, flyOutCardId, metricCardIdsKey, metricCards.length]);
+  }, [analysisCardIdsKey, analysisCards.length, detailCardId, desktopMotionEnabled, flyOutCardId]);
 
   const recommendations = useMemo(() => {
     if (!thermal) {
@@ -707,14 +745,16 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
     return next.slice(0, 3);
   }, [thermal]);
 
-  const handleMetricCardClick = useCallback(
+  const handleCardClick = useCallback(
     (cardId: string) => {
       if (flyOutCardId || detailCardId || introRunning) {
         return;
       }
 
       if (!desktopMotionEnabled) {
+        setOpenDetailIds((previous) => new Set(previous).add(cardId));
         setDetailCardId(cardId);
+        setFlyOutCardId(null);
         return;
       }
 
@@ -724,11 +764,10 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
         return;
       }
 
-      const cardIndex = Math.max(0, INTRO_CARD_ORDER.indexOf(cardId as (typeof INTRO_CARD_ORDER)[number]));
+      const cardIndex = Math.max(0, ANALYSIS_CARD_ORDER.indexOf(cardId as (typeof ANALYSIS_CARD_ORDER)[number]));
       const direction = cardIndex % 2 === 0 ? -1 : 1;
       detailEntranceDirectionRef.current = direction;
-      const gridWidth = gridRef.current?.getBoundingClientRect().width ?? window.innerWidth;
-      const travel = Math.max(window.innerWidth, gridWidth) + cardElement.getBoundingClientRect().width + 180;
+      const travel = computeOffscreenTravel(cardElement, direction, window.innerWidth);
 
       setFlyOutCardId(cardId);
       cardElement.classList.add('analysis-card-animating');
@@ -779,6 +818,8 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
       updated.delete(cardId);
       return updated;
     });
+    setDetailCardId((current) => (current === cardId ? null : current));
+    setFlyOutCardId((current) => (current === cardId ? null : current));
   };
 
   const scoreStyle = useMemo<CSSProperties>(() => {
@@ -810,7 +851,7 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
   }, [thermal]);
 
   const updatedLabel = liveRecord ? formatDateTime(toEpochMs(liveRecord.ts)) : '--';
-  const interactionLocked = introRunning || flyOutCardId !== null;
+  const interactionLocked = introRunning || flyOutCardId !== null || detailCardId !== null;
 
   return (
     <main className="app-shell analysis-shell">
@@ -877,7 +918,7 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
             </div>
           </section>
 
-          <section className="analysis-grid" aria-label="Wskaźniki fizyczne" ref={gridRef}>
+          <section className="analysis-grid" aria-label="Wskaźniki fizyczne">
             {metricCards.map((card) => {
               const isDetail = openDetailIds.has(card.id);
               const cardClasses = !interactionLocked ? 'analysis-card-clickable' : '';
@@ -897,18 +938,40 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
                 <AnalysisMetricCard
                   key={card.id}
                   metric={card}
-                  onSelect={!interactionLocked ? () => handleMetricCardClick(card.id) : undefined}
+                  onSelect={!interactionLocked ? () => handleCardClick(card.id) : undefined}
                   additionalClass={cardClasses}
-                  cardRef={registerMetricCardRef(card.id)}
+                  cardRef={registerCardRef(card.id)}
                 />
               );
             })}
           </section>
 
           <section className="analysis-grid analysis-grid--secondary" aria-label="Wskaźniki rozszerzone">
-            {insightCards.map((card) => (
-              <AnalysisMetricCard key={card.id} metric={card} />
-            ))}
+            {insightCards.map((card) => {
+              const isDetail = openDetailIds.has(card.id);
+              const cardClasses = !interactionLocked ? 'analysis-card-clickable' : '';
+
+              if (isDetail) {
+                return (
+                  <AnalysisDetailCard
+                    key={card.id}
+                    metric={card}
+                    onClose={() => closeDetailCard(card.id)}
+                    cardRef={registerDetailCardRef(card.id)}
+                  />
+                );
+              }
+
+              return (
+                <AnalysisMetricCard
+                  key={card.id}
+                  metric={card}
+                  onSelect={!interactionLocked ? () => handleCardClick(card.id) : undefined}
+                  additionalClass={cardClasses}
+                  cardRef={registerCardRef(card.id)}
+                />
+              );
+            })}
           </section>
 
           <section className="panel analysis-cockpit" style={cockpitStyle}>
