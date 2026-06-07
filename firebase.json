@@ -1,10 +1,19 @@
 {
   "hosting": {
-    "public": "public",
+    "public": "public/ticking-bomb-react/dist",
+    "predeploy": [
+      "npm --prefix public/ticking-bomb-react run build"
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ]
   },
   "database": {

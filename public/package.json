@@ -1,21 +1,11 @@
 {
-  "name": "public",
-  "version": "1.0.0",
-  "description": "",
-  "main": "app.js",
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "name": "iot-esp32-zegar-workspace",
+  "private": true,
   "scripts": {
-    "test": "mocha --recursive"
-  },
-  "devDependencies": {
-    "chai": "^4.3.7",
-    "jsdom": "^22.1.0",
-    "mocha": "^10.2.0"
-  },
-  "dependencies": {
-    "firebase-admin": "^13.6.0"
+    "dev": "npm --prefix ./ticking-bomb-react run dev",
+    "build": "npm --prefix ./ticking-bomb-react run build",
+    "lint": "npm --prefix ./ticking-bomb-react run lint",
+    "test": "npm --prefix ./ticking-bomb-react run test",
+    "preview": "npm --prefix ./ticking-bomb-react run preview"
   }
 }
