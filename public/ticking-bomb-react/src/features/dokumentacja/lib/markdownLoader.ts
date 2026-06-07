@@ -1,9 +1,13 @@
 import { applyDocumentationSectionConfig } from '../data/docsSections.config';
 import sourceMarkdown from '../content/master-documentation.md?raw';
-import { parseMarkdownSections } from './markdownSectionParser';
+import { buildDocumentationAnchorLookup, parseMarkdownSections } from './markdownSectionParser';
 
 export const documentationSourceMarkdown = sourceMarkdown;
 
-export const documentationSections = applyDocumentationSectionConfig(
+const parsedDocumentationSections = applyDocumentationSectionConfig(
   parseMarkdownSections(documentationSourceMarkdown),
 );
+
+export const documentationSections = parsedDocumentationSections;
+
+export const documentationAnchorLookup = buildDocumentationAnchorLookup(parsedDocumentationSections);

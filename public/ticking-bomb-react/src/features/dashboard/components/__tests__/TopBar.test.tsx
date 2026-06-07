@@ -23,6 +23,7 @@ describe('TopBar', () => {
           onRefresh={onRefresh}
           onOpenAnalysis={vi.fn()}
           onOpenDocumentation={vi.fn()}
+          documentationEnabled={true}
           connectionStatus="connected"
         />,
       );
@@ -59,6 +60,7 @@ describe('TopBar', () => {
           onRefresh={() => undefined}
           onOpenAnalysis={() => undefined}
           onOpenDocumentation={() => undefined}
+          documentationEnabled={true}
           connectionStatus="reconnecting"
         />,
       );
@@ -74,12 +76,48 @@ describe('TopBar', () => {
           onRefresh={() => undefined}
           onOpenAnalysis={() => undefined}
           onOpenDocumentation={() => undefined}
+          documentationEnabled={true}
           connectionStatus="disconnected"
         />,
       );
     });
 
     expect(container.querySelector('#statusIndicator')?.textContent).toContain('Brak danych > 60s');
+
+    await act(async () => {
+      root.unmount();
+    });
+
+    document.body.removeChild(container);
+  });
+
+  test('disables documentation button when feature flag is off', async () => {
+    const onOpenDocumentation = vi.fn();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <TopBar
+          motionEnabled={true}
+          onToggleMotion={vi.fn()}
+          onRefresh={vi.fn()}
+          onOpenAnalysis={vi.fn()}
+          onOpenDocumentation={onOpenDocumentation}
+          documentationEnabled={false}
+          connectionStatus="connected"
+        />,
+      );
+    });
+
+    const documentationButton = container.querySelector('#btnDocumentation') as HTMLButtonElement | null;
+    expect(documentationButton).not.toBeNull();
+    expect(documentationButton?.disabled).toBe(true);
+
+    documentationButton?.click();
+
+    expect(onOpenDocumentation).not.toHaveBeenCalled();
 
     await act(async () => {
       root.unmount();

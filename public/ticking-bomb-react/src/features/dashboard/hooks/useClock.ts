@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAppContext } from '../../../shared/context/AppContext';
 import { formatClock, toEpochMs } from '../../../shared/lib/timeHelpers';
 import type { ClockState } from '../../../shared/types';
 
@@ -12,7 +11,7 @@ function createLocalClockState(): ClockState {
   return {
     displayTime: formatClock(now),
     source: 'local',
-    startMs: now,
+    startMs: null,
     rtt: null,
   };
 }
@@ -22,10 +21,8 @@ function shouldUseDeviceClock(deviceMs: number, currentMs: number): boolean {
 }
 
 export function useClock(ts: number | undefined): ClockState {
-  const { pushAlert } = useAppContext();
   const [state, setState] = useState<ClockState>(() => createLocalClockState());
 
-  const hasAnnouncedFallbackRef = useRef(false);
   const baseMsRef = useRef<number>(0);
   const timeoutIdRef = useRef<number | null>(null);
   const animationFrameIdRef = useRef<number | null>(null);
@@ -121,21 +118,12 @@ export function useClock(ts: number | undefined): ClockState {
       if (ts == null) {
         baseMsRef.current = currentMs - performance.now();
 
-        if (!hasAnnouncedFallbackRef.current) {
-          hasAnnouncedFallbackRef.current = true;
-          pushAlert({
-            level: 'warn',
-            message: 'Brak czasu z urządzenia — używam czasu lokalnego.',
-            autoDismiss: true,
-          });
-        }
-
         const displayTime = formatClock(currentMs);
 
         updateState({
           source: 'local',
           rtt: null,
-          startMs: currentMs,
+          startMs: null,
           displayTime,
         });
 
@@ -148,21 +136,12 @@ export function useClock(ts: number | undefined): ClockState {
       if (!shouldUseDeviceClock(deviceMs, currentMs)) {
         baseMsRef.current = currentMs - performance.now();
 
-        if (!hasAnnouncedFallbackRef.current) {
-          hasAnnouncedFallbackRef.current = true;
-          pushAlert({
-            level: 'warn',
-            message: 'Czas z urządzenia jest poza zakresem synchronizacji - używam czasu lokalnego.',
-            autoDismiss: true,
-          });
-        }
-
         const displayTime = formatClock(currentMs);
 
         updateState({
           source: 'local',
           rtt: null,
-          startMs: currentMs,
+          startMs: null,
           displayTime,
         });
 
@@ -172,7 +151,6 @@ export function useClock(ts: number | undefined): ClockState {
       }
 
       baseMsRef.current = deviceMs - performance.now();
-      hasAnnouncedFallbackRef.current = false;
       const rtt = Math.max(0, currentMs - deviceMs);
       const displayTime = formatClock(baseMsRef.current + performance.now());
 
@@ -206,7 +184,7 @@ export function useClock(ts: number | undefined): ClockState {
       stopLoop();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [pushAlert, ts]);
+  }, [ts]);
 
   return state;
 }

@@ -4,6 +4,7 @@ interface TopBarProps {
   onRefresh: () => void;
   onOpenAnalysis: () => void;
   onOpenDocumentation: () => void;
+  documentationEnabled: boolean;
   connectionStatus: 'connected' | 'reconnecting' | 'disconnected';
 }
 
@@ -15,6 +16,7 @@ function TopBar({
   onRefresh,
   onOpenAnalysis,
   onOpenDocumentation,
+  documentationEnabled,
   connectionStatus,
 }: TopBarProps) {
   const statusLabel =
@@ -65,7 +67,13 @@ function TopBar({
         <button className="ghost-btn" id="toggleMotion" type="button" aria-pressed={motionEnabled} onClick={onToggleMotion}>
           Animacje: {motionEnabled ? 'włączone' : 'wyłączone'}
         </button>
-        <button className="primary-btn" id="btnDocumentation" type="button" onClick={onOpenDocumentation}>
+        <button
+          className="primary-btn"
+          id="btnDocumentation"
+          type="button"
+          onClick={onOpenDocumentation}
+          disabled={!documentationEnabled}
+        >
           📘 Dokumentacja
         </button>
         <button className="primary-btn" id="btnDataAnalysis" type="button" onClick={onOpenAnalysis}>

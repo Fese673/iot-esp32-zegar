@@ -1,6 +1,7 @@
 export interface DocumentationSubheading {
   id: string;
   title: string;
+  anchor: string;
 }
 
 export interface DocumentationSection {
@@ -10,6 +11,13 @@ export interface DocumentationSection {
   subheadings: DocumentationSubheading[];
   order: number;
 }
+
+export interface DocumentationAnchorTarget {
+  sectionId: string;
+  targetId: string;
+}
+
+export type DocumentationAnchorLookup = Record<string, DocumentationAnchorTarget>;
 
 function cleanHeading(text: string): string {
   return text.replace(/\s+#+\s*$/, '').trim();
@@ -26,8 +34,13 @@ export function toSlug(value: string): string {
   return normalized || 'sekcja';
 }
 
+export function normalizeAnchorKey(anchorValue: string): string {
+  return toSlug(decodeURIComponent(anchorValue).replace(/^#/, '').trim());
+}
+
 function extractSubheadings(sectionId: string, markdown: string): DocumentationSubheading[] {
   const usedIds = new Set<string>();
+  const usedAnchors = new Set<string>();
 
   return markdown
     .split('\n')
@@ -35,8 +48,10 @@ function extractSubheadings(sectionId: string, markdown: string): DocumentationS
     .filter((line) => line.startsWith('### '))
     .map((line) => cleanHeading(line.slice(4)))
     .map((title) => {
-      const baseId = `${sectionId}-${toSlug(title)}`;
+      const baseAnchor = toSlug(title);
+      const baseId = `${sectionId}-${baseAnchor}`;
       let uniqueId = baseId;
+      let uniqueAnchor = baseAnchor;
       let counter = 2;
 
       while (usedIds.has(uniqueId)) {
@@ -44,8 +59,20 @@ function extractSubheadings(sectionId: string, markdown: string): DocumentationS
         counter += 1;
       }
 
+      counter = 2;
+      while (usedAnchors.has(uniqueAnchor)) {
+        uniqueAnchor = `${baseAnchor}-${counter}`;
+        counter += 1;
+      }
+
       usedIds.add(uniqueId);
-      return { id: uniqueId, title };
+      usedAnchors.add(uniqueAnchor);
+
+      return {
+        id: uniqueId,
+        title,
+        anchor: uniqueAnchor,
+      };
     });
 }
 
@@ -132,4 +159,45 @@ export function parseMarkdownSections(markdown: string): DocumentationSection[] 
   }
 
   return sections;
+}
+
+function registerAnchor(
+  lookup: DocumentationAnchorLookup,
+  key: string,
+  target: DocumentationAnchorTarget,
+): void {
+  if (!key) {
+    return;
+  }
+
+  if (!(key in lookup)) {
+    lookup[key] = target;
+  }
+}
+
+export function buildDocumentationAnchorLookup(sections: DocumentationSection[]): DocumentationAnchorLookup {
+  const lookup: DocumentationAnchorLookup = {};
+
+  sections.forEach((section) => {
+    const sectionTarget: DocumentationAnchorTarget = {
+      sectionId: section.id,
+      targetId: section.id,
+    };
+
+    registerAnchor(lookup, normalizeAnchorKey(section.id), sectionTarget);
+    registerAnchor(lookup, normalizeAnchorKey(section.title), sectionTarget);
+
+    section.subheadings.forEach((subheading) => {
+      const target: DocumentationAnchorTarget = {
+        sectionId: section.id,
+        targetId: subheading.id,
+      };
+
+      registerAnchor(lookup, normalizeAnchorKey(subheading.id), target);
+      registerAnchor(lookup, normalizeAnchorKey(subheading.anchor), target);
+      registerAnchor(lookup, normalizeAnchorKey(subheading.title), target);
+    });
+  });
+
+  return lookup;
 }

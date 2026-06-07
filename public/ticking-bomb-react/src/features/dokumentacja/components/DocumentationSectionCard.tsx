@@ -2,14 +2,22 @@ import { isValidElement, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeHighlight from 'rehype-highlight';
+import rehypeSlug from 'rehype-slug';
 import remarkGfm from 'remark-gfm';
 import DocumentationCodeBlock from './DocumentationCodeBlock';
 import DocumentationTable from './DocumentationTable';
-import { toSlug, type DocumentationSection } from '../lib/markdownSectionParser';
+import { buildDocumentationHash } from '../lib/documentationHash';
+import {
+  normalizeAnchorKey,
+  toSlug,
+  type DocumentationAnchorLookup,
+  type DocumentationSection,
+} from '../lib/markdownSectionParser';
 
 interface DocumentationSectionCardProps {
   section: DocumentationSection;
   index: number;
+  anchorLookup: DocumentationAnchorLookup;
 }
 
 function childrenToPlainText(children: ReactNode): string {
@@ -28,7 +36,7 @@ function childrenToPlainText(children: ReactNode): string {
   return '';
 }
 
-function DocumentationSectionCard({ section, index }: DocumentationSectionCardProps) {
+function DocumentationSectionCard({ section, index, anchorLookup }: DocumentationSectionCardProps) {
   const headingCounters = new Map<string, number>();
 
   const getSubheadingId = (headingText: string): string => {
@@ -59,10 +67,21 @@ function DocumentationSectionCard({ section, index }: DocumentationSectionCardPr
     },
     a: ({ href, children, ...props }) => {
       const rawHref = href ?? '';
-      const isInternalAnchor = rawHref.startsWith('#');
-      const safeHref = isInternalAnchor
-        ? `#dokumentacja/${rawHref.slice(1)}`
-        : rawHref;
+      const isDocumentationHash = rawHref.startsWith('#dokumentacja');
+      const isInternalAnchor = rawHref.startsWith('#') && !isDocumentationHash;
+
+      let safeHref = rawHref;
+      if (isInternalAnchor) {
+        const normalizedAnchor = normalizeAnchorKey(rawHref);
+        const mappedTarget = anchorLookup[normalizedAnchor];
+
+        if (mappedTarget) {
+          safeHref = buildDocumentationHash(mappedTarget.sectionId, mappedTarget.targetId);
+        } else {
+          safeHref = buildDocumentationHash(section.id);
+        }
+      }
+
       const isExternal = /^https?:\/\//i.test(rawHref);
 
       return (
@@ -100,6 +119,7 @@ function DocumentationSectionCard({ section, index }: DocumentationSectionCardPr
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[
             rehypeHighlight,
+            rehypeSlug,
             [rehypeAutolinkHeadings, { behavior: 'append' }],
           ]}
           components={markdownComponents}

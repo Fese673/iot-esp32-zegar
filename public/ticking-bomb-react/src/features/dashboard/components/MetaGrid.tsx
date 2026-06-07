@@ -30,8 +30,7 @@ function MetaGrid({ liveTimestamp }: MetaGridProps) {
           <p className="label">Projekt działa od</p>
           <img src="/elektryk-2.gif" id="uptimeGif" className="uptime-gif" alt="Uptime indicator" />
         </header>
-        <p className="value mono" id="uptimeValue">{clock.startMs ? formatDateTime(clock.startMs) : '--'}</p>
-        <p className="muted" id="projectStartTime">{clock.source === 'device' ? 'Źródło: device' : 'Źródło: local'}</p>
+        <p className="value mono" id="uptimeValue">{clock.startMs ? formatDateTime(clock.startMs) : '====-==-== --:--:--'}</p>
       </article>
 
       <article className="stat-card meta-card ntp-card">
@@ -40,11 +39,6 @@ function MetaGrid({ liveTimestamp }: MetaGridProps) {
           <span className="tag live">NTP</span>
         </header>
         <ClockValue value={clock.displayTime} />
-        <p className="muted" id="ntpClockMeta">
-          {clock.source === 'device'
-            ? `Źródło: device${clock.rtt != null ? ` • RTT ~${Math.round(clock.rtt)} ms` : ''}`
-            : 'Brak NTP — używam czasu lokalnego'}
-        </p>
       </article>
     </section>
   );

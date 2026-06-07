@@ -19,12 +19,18 @@ const DocumentationPage = lazy(() => import('./features/dokumentacja/components/
 
 type ActivePage = 'dashboard' | 'analysis' | 'documentation';
 
+const DOCUMENTATION_ENABLED = true;
+
 function resolveActivePageFromHash(hash: string): ActivePage {
   if (hash.startsWith('#analiza-danych')) {
     return 'analysis';
   }
 
   if (hash.startsWith('#dokumentacja')) {
+    if (!DOCUMENTATION_ENABLED) {
+      return 'dashboard';
+    }
+
     return 'documentation';
   }
 
@@ -50,6 +56,11 @@ function DashboardContent() {
     };
 
     window.addEventListener('hashchange', handleHashChange);
+
+    if (!DOCUMENTATION_ENABLED && window.location.hash.startsWith('#dokumentacja')) {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    }
+
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
@@ -74,6 +85,10 @@ function DashboardContent() {
   }, []);
 
   const openDocumentation = useCallback(() => {
+    if (!DOCUMENTATION_ENABLED) {
+      return;
+    }
+
     window.location.hash = '#dokumentacja';
     setActivePage('documentation');
   }, []);
@@ -139,6 +154,7 @@ function DashboardContent() {
           onRefresh={refreshDashboard}
           onOpenAnalysis={openAnalysis}
           onOpenDocumentation={openDocumentation}
+          documentationEnabled={DOCUMENTATION_ENABLED}
           connectionStatus={state.connectionStatus}
         />
         <MetaGrid liveTimestamp={liveMetrics.data?.ts} />

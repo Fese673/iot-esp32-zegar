@@ -267,7 +267,6 @@ function fallbackToLocal(reason) {
   timeState.source = reason || "local";
   timeState.rtt = null;
   timeState.lastSync = Date.now();
-  if ($ntpClockMeta) $ntpClockMeta.textContent = "Brak NTP — używam czasu lokalnego";
 }
 
 async function syncTimeFromDevice() {
@@ -288,9 +287,6 @@ async function syncTimeFromDevice() {
     timeState.source = data.source || "device";
     timeState.rtt = Math.round(rtt);
 
-    if ($ntpClockMeta) {
-      $ntpClockMeta.textContent = `Źródło: ${timeState.source} • RTT ~${timeState.rtt} ms`;
-    }
     if (!timeState.startMs && data.boot_ms) {
       timeState.startMs = Number(data.boot_ms);
     }

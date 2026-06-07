@@ -287,6 +287,16 @@ body.analysis-page-active {
 
 .primary-btn:hover { transform: translateY(-1px) scale(1.01); }
 
+.primary-btn:disabled,
+.primary-btn:disabled:hover {
+  background: #626a76;
+  color: #d7dee7;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none;
+}
+
 .meta-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
