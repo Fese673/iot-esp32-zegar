@@ -273,7 +273,7 @@ export default function Ens160Section() {
             onNextMonth={calendar.nextMonth}
             onPrevMonth={calendar.prevMonth}
             prevButtonLabel="◀"
-            nextButtonLabel="◆"
+            nextButtonLabel="▶"
           />
         </div>
       </section>

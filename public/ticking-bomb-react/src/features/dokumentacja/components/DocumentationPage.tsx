@@ -4,6 +4,7 @@ import { sensorsCatalog } from '../data/sensorsCatalog';
 import { buildDocumentationHash, parseDocumentationHash } from '../lib/documentationHash';
 import { documentationAnchorLookup, documentationSections } from '../lib/markdownLoader';
 import DocumentationHero from './DocumentationHero';
+import DocumentationRepos from './DocumentationRepos';
 import DocumentationSectionCard from './DocumentationSectionCard';
 import DocumentationSensorHub from './DocumentationSensorHub';
 import DocumentationToc from './DocumentationToc';
@@ -143,6 +144,7 @@ function DocumentationPage({ onBack }: DocumentationPageProps) {
       <DocumentationTopNav onBack={onBack} />
       <DocumentationHero totalSections={allSections.length} />
       <DocumentationSensorHub sensors={sensorsCatalog} />
+      <DocumentationRepos />
 
       <div className="docs-layout">
         <DocumentationToc

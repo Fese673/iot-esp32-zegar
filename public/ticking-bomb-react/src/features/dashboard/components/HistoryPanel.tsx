@@ -94,7 +94,7 @@ function HistoryPanel({ liveRecord }: HistoryPanelProps) {
           onNextMonth={calendar.nextMonth}
           onPrevMonth={calendar.prevMonth}
           prevButtonLabel="◀"
-          nextButtonLabel="◆"
+          nextButtonLabel="▶"
         />
       </div>
     </section>
