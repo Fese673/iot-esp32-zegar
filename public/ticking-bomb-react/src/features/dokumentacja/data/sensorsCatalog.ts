@@ -63,4 +63,22 @@ export const sensorsCatalog: SensorCatalogItem[] = [
     shortDescription: 'Modulowy panel dotykowy ESP32-S3 z 5" IPS 800x480, WiFi, BLE 5.0 i 8 MB PSRAM.',
     highlights: ['ESP32-S3 dual-core 240MHz', '800x480 IPS RGB', 'Capacitive touch (GT911)', '16 MB Flash + 8 MB PSRAM', 'WiFi + BLE 5.0'],
   },
+  {
+    id: 'pcm5102',
+    name: 'PCM5102A',
+    role: 'DAC audio — 32-bit I2S',
+    imagePath: '/images/sensors/pcm5102.png',
+    docsUrl: 'https://www.ti.com/lit/ds/symlink/pcm5102.pdf',
+    shortDescription: '32-bit stereo DAC I2S z niskim poziomem szumu i zakresem napiecia 3.3-5V, wykorzystywany do odtwarzania audio z Bluetooth na ESP32.',
+    highlights: ['32-bit / 384kHz', 'I2S', 'niski THD+N', '3.3-5V'],
+  },
+  {
+    id: 'lcd2004',
+    name: 'LCD 2004 (HD44780)',
+    role: 'Wyswietlacz znakowy 20x4',
+    imagePath: '/images/sensors/lcd2004.png',
+    docsUrl: 'https://cdn-shop.adafruit.com/datasheets/TC2004A-01.pdf',
+    shortDescription: 'Alfanumeryczny wyswietlacz LCD 20 znakow x 4 wiersze z kontrolerem HD44780, podlaczony przez I2C (PCF8574) do ESP32.',
+    highlights: ['20x4 znaki', 'HD44780', 'I2C (PCF8574)', 'podswietlenie'],
+  },
 ];
