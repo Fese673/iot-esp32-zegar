@@ -912,8 +912,11 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
               <p className="analysis-score-kicker">Syntetyczna ocena mikroklimatu</p>
               <h3>{score.label}</h3>
               <p className="analysis-score-desc">
-                Wynik łączy punkt rosy, humidex, AH i Heat Index (gdy model NWS jest aktywny). Im wyższa wartość,
-                tym bardziej stabilne warunki wewnątrz pomieszczenia.
+                Ocena 0–100 zbiera w całość wszystko, co widzisz poniżej: komfort cieplny (punkt rosy,
+                humidex, Heat Index, wilgotność absolutna), jakość powietrza (PM2.5, eCO2, TVOC) oraz
+                3-godzinny trend ciśnienia. Najmocniej liczy się czyste powietrze, a jeden zły odczyt
+                obniża wynik bardziej niż zwykła średnia. 80+ to stabilnie, 60–79 to akceptowalnie,
+                poniżej 40 warto przewietrzyć i sprawdzić karty poniżej.
               </p>
             </div>
 
