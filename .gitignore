@@ -73,3 +73,5 @@ node_modules/
 serviceAccount.json
 *.serviceAccount.json
 secrets/
+referencje
+
