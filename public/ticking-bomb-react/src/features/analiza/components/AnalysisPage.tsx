@@ -350,7 +350,7 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
   const detailEntranceDirectionRef = useRef<-1 | 1>(1);
   const detailEnterAnimationRef = useRef<Animation | null>(null);
 
-  const analysisDateKey = liveRecord ? toDateKey(liveRecord.ts) : analysisFallbackDateKey;
+  const analysisDateKey = liveRecord ? toDateKey(toEpochMs(liveRecord.ts)) : analysisFallbackDateKey;
   const historyData = useHistoryData(analysisDateKey);
   const pmsLive = usePmsLive();
   const ens160Live = useEns160Live();
@@ -366,7 +366,7 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
     });
   }, [liveRecord]);
 
-  const barometricTrend = useMemo(() => computeBarometricTrend(historyData.points, liveRecord?.ts ?? Number.NaN, liveRecord?.p ?? Number.NaN), [historyData.points, liveRecord]);
+  const barometricTrend = useMemo(() => computeBarometricTrend(historyData.points, liveRecord ? toEpochMs(liveRecord.ts) : Number.NaN, liveRecord?.p ?? Number.NaN), [historyData.points, liveRecord]);
 
   const pmsRaw = useMemo(() => extractPmRawLike(pmsLive.data), [pmsLive.data]);
 

@@ -21,10 +21,6 @@ function DocumentationSensorHub({ sensors }: DocumentationSensorHubProps) {
       <header className="docs-sensor-hub-head">
         <p className="eyebrow mono">Sekcja startowa</p>
         <h2>Sensory i dokumentacje producentow</h2>
-        <p className="muted">
-          To miejsce jest celowo wydzielone na zdjecia, linki zrodlowe i szybkie wyjasnienie,
-          co mierzy kazdy modul w Twoim projekcie.
-        </p>
       </header>
 
       <div className="docs-sensor-grid">
