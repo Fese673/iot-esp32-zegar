@@ -81,4 +81,13 @@ export const sensorsCatalog: SensorCatalogItem[] = [
     shortDescription: 'Alfanumeryczny wyswietlacz LCD 20 znakow x 4 wiersze z kontrolerem HD44780, podlaczony przez I2C (PCF8574) do ESP32.',
     highlights: ['20x4 znaki', 'HD44780', 'I2C (PCF8574)', 'podswietlenie'],
   },
+  {
+    id: 'hlk-ld2410c',
+    name: 'HLK-LD2410C',
+    role: 'Radar obecnosci 24 GHz — ruch i obecnosc',
+    imagePath: '/images/sensors/hlk-ld2410c.jpg',
+    docsUrl: 'https://naylampmechatronics.com/img/cms/001080/HLK-LD2410C_datasheet.pdf',
+    shortDescription: 'Radarowy czujnik obecnosci 24 GHz z UART i BLE, wykrywa ruch oraz statyczna obecnosc czlowieka w pomieszczeniu, z regulacja czulosci i zasiegu w bramkach.',
+    highlights: ['24 GHz', 'obecnosc + ruch', 'UART + BLE', 'zasieg do ok. 6 m'],
+  },
 ];
