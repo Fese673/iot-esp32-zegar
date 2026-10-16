@@ -3,7 +3,7 @@
 Dashboard do monitorowania danych z ESP32 w czasie rzeczywistym.
 Jakość powietrza, mikroklimat w pomieszczeniu, pogoda i telemetria — wszystko na jednym ekranie.
 
-**Demo live:** https://iot-esp32-zegar.web.app
+**Strona internetowa projektu:** https://iot-esp32-zegar.web.app
 
 ## Funkcje
 
