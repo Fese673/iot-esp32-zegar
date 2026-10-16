@@ -366,9 +366,25 @@ function AnalysisPage({ onBack, liveRecord, loadState, connectionStatus, motionE
     });
   }, [liveRecord]);
 
-  const score = useMemo(() => (thermal ? computeComfortScore(thermal) : null), [thermal]);
+  const barometricTrend = useMemo(() => computeBarometricTrend(historyData.points, liveRecord?.ts ?? Number.NaN, liveRecord?.p ?? Number.NaN), [historyData.points, liveRecord]);
 
   const pmsRaw = useMemo(() => extractPmRawLike(pmsLive.data), [pmsLive.data]);
+
+  const score = useMemo(() => {
+    if (!thermal) {
+      return null;
+    }
+
+    return computeComfortScore({
+      thermal,
+      airQuality: {
+        pm25: pmsRaw?.pm25 ?? null,
+        eco2: ens160Live.data?.eco2 ?? null,
+        tvoc: ens160Live.data?.tvoc ?? null,
+      },
+      pressureDelta: barometricTrend.deltaHpa,
+    });
+  }, [thermal, pmsRaw, ens160Live.data, barometricTrend]);
 
   const metricCards = useMemo<MetricCardModel[]>(() => {
     if (!thermal) {
