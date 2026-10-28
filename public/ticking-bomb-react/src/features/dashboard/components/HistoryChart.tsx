@@ -52,10 +52,7 @@ interface HistoryChartProps {
 
 const MIN_WINDOW_MS = 60_000;
 const REALTIME_WINDOW_MS = 10 * 60_000;
-const RIGHT_PADDING_RATIO = 0.08;
-const RIGHT_PADDING_MAX_MS = 60_000;
-const INITIAL_ZOOM_MS = MIN_WINDOW_MS;
-const INITIAL_PAN_STEPS = 4;
+const INITIAL_ZOOM_MS = 2 * 60 * 60 * 1000;
 
 function readCssVar(name: string, fallback: string): string {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name);
@@ -96,11 +93,6 @@ function readChartPalette(): ChartPalette {
     panel: readCssVar('--panel-2', '#0b101a'),
     grid: 'rgba(255,255,255,0.04)',
   };
-}
-
-function computeRightPadding(windowMs: number): number {
-  const padding = Math.round(windowMs * RIGHT_PADDING_RATIO);
-  return Math.min(padding, RIGHT_PADDING_MAX_MS);
 }
 
 function formatAxisTime(value: number): string {
@@ -238,11 +230,11 @@ function getBoundsFromPoints(points: ChartPoint[]): ChartBounds | null {
 
   const firstPoint = points[0];
   const startDate = new Date(firstPoint.x);
-  const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime();
+  const dayStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime();
 
   return {
-    start,
-    end: start + 24 * 60 * 60 * 1000,
+    start: firstPoint.x,
+    end: dayStart + 24 * 60 * 60 * 1000,
   };
 }
 
@@ -545,7 +537,7 @@ export default function HistoryChart({ points, loadState, selectedDate, seriesCo
     if (initializedDateRef.current === selectedDate && chartWindowRef.current.end > chartWindowRef.current.start) {
       const isSelectedToday = selectedDate === toDateKey(new Date());
       const latest = getLatestPoint(sortedPoints);
-      const padding = computeRightPadding(REALTIME_WINDOW_MS);
+      const padding = REALTIME_WINDOW_MS;
       const windowRange = chartWindowRef.current;
 
       if (isSelectedToday && Number.isFinite(latest) && latest >= windowRange.end - padding && bounds) {
@@ -564,14 +556,13 @@ export default function HistoryChart({ points, loadState, selectedDate, seriesCo
 
     if (initializedDateRef.current !== selectedDate) {
       const latest = getLatestPoint(sortedPoints);
-      const pad = computeRightPadding(REALTIME_WINDOW_MS);
-      const end = Math.max(bounds.start + MIN_WINDOW_MS, latest - pad);
-      const start = Math.max(bounds.start, end - INITIAL_ZOOM_MS);
+      const headroom = REALTIME_WINDOW_MS;
+      const dataStart = sortedPoints[0]?.x ?? bounds.start;
+      const dataSpan = latest - dataStart;
+      const desiredWidth = dataSpan < INITIAL_ZOOM_MS ? dataSpan + headroom : INITIAL_ZOOM_MS;
+      const end = Math.min(bounds.end, latest + headroom);
+      const start = Math.max(bounds.start, end - desiredWidth);
       setChartWindowRef.current(start, end);
-
-      for (let index = 0; index < INITIAL_PAN_STEPS; index += 1) {
-        panChartRef.current(1);
-      }
 
       initializedDateRef.current = selectedDate;
     }

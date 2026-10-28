@@ -62,7 +62,7 @@ describe('Ens160Section', () => {
       root.render(<Ens160Section />);
     });
 
-    expect(container.querySelector('p.eyebrow')?.textContent).toBe('WYKRES ENS160');
+    expect(container.querySelector('p.eyebrow')?.textContent).toBe('WYKRES 4');
     expect(container.querySelectorAll('button').length).toBeGreaterThanOrEqual(2);
 
     expect(container.querySelectorAll('.stat-card').length).toBe(3);

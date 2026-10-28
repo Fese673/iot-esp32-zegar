@@ -23,7 +23,7 @@ import {
   getSeverityColor,
   severityLabel,
 } from '../lib/particlesUtils';
-import type { ParticleDataSource, ParticleFraction, ParticleFractionKey, ParticleMetrics, ParticleRow } from '../types';
+import type { ParticleFraction, ParticleFractionKey, ParticleMetrics, ParticleRow } from '../types';
 import PmsParticlesMetricTiles from './PmsParticlesMetricTiles';
 import './PmsParticlesChart.css';
 
@@ -121,47 +121,10 @@ function getPeakLineStyle(row: ParticleRow): CSSProperties {
   };
 }
 
-function sourceChipLabel(source: ParticleDataSource, liveStatus: LoadState): string {
-  if (source === 'live-particles') {
-    return 'LIVE: particles';
-  }
-
-  if (source === 'live-derived') {
-    return 'LIVE: PM fallback';
-  }
-
-  if (source === 'history-derived') {
-    return 'ARCH: PM fallback';
-  }
-
-  if (liveStatus === 'loading') {
-    return 'LIVE: oczekiwanie';
-  }
-
-  return 'LIVE: brak danych';
-}
-
-function sourceStatusLabel(source: ParticleDataSource): string {
-  if (source === 'live-particles') {
-    return 'Dane LIVE particles';
-  }
-
-  if (source === 'live-derived') {
-    return 'Dane LIVE PM';
-  }
-
-  if (source === 'history-derived') {
-    return 'Dane historyczne PM';
-  }
-
-  return 'Tryb zapasowy';
-}
-
 export default function PmsParticlesChart({
   points = [],
   liveData = null,
   preferLive = true,
-  liveStatus = 'loading',
   onMetrics,
 }: PmsParticlesChartProps) {
   const frame = useParticlesFrame({ liveData, points, preferLive });
@@ -258,9 +221,7 @@ export default function PmsParticlesChart({
     setHovered({ key, x: event.clientX, y: event.clientY });
   };
 
-  const statusText = `${sourceStatusLabel(frame.source)} · pik ${fmtCount(Math.round(peakRow.reading))} @ ${peakFraction.label} · próbka ${frame.frame}`;
-  const chipLabel = sourceChipLabel(frame.source, liveStatus);
-  const chartEyebrow = frame.source === 'history-derived' ? 'WYKRES 3 · HISTORIA' : 'WYKRES 3 · LIVE';
+  const chartEyebrow = frame.source === 'history-derived' ? 'WYKRES 3 · HISTORIA' : 'WYKRES 3';
 
   const selectedFraction = FRACTIONS.find((fraction) => fraction.key === selectedKey) ?? FRACTIONS[0];
   const selectedRow = rowsByKey.get(selectedKey) ?? createFallbackRow(selectedFraction);
@@ -315,13 +276,6 @@ export default function PmsParticlesChart({
             Słupki pokazują stosunek bieżącego odczytu do maksimum sesji dla każdej z 6 frakcji.
             Kliknij kolumnę aby zobaczyć szczegóły. Linia przerywana = szczyt sesji.
           </p>
-        </div>
-        <div className="particles3-chip-row">
-          <span className="particles3-chip particles3-chip-live"><span className="particles3-pulse"></span> {chipLabel}</span>
-          <button className="particles3-chip particles3-chip-action" type="button" onClick={() => setDrawerOpen(true)}>
-            Szczegóły
-          </button>
-          <span className="particles3-chip">stacked bars</span>
         </div>
       </header>
 
@@ -393,7 +347,7 @@ export default function PmsParticlesChart({
                           </div>
                         </div>
 
-                        <div className="particles3-peak-line" style={getPeakLineStyle(row)}></div>
+                          <div className="particles3-peak-line" style={getPeakLineStyle(row)}></div>
                       </div>
                     </div>
                   );
@@ -438,7 +392,6 @@ export default function PmsParticlesChart({
                 <span className="particles3-legend-item"><span className="particles3-legend-dot particles3-warn"></span> uwaga</span>
                 <span className="particles3-legend-item"><span className="particles3-legend-dot particles3-alert"></span> alarm</span>
               </div>
-              <div className="particles3-status" aria-live="polite">{statusText}</div>
             </footer>
           </div>
         </div>

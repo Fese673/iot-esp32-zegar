@@ -169,9 +169,9 @@ export default function Ens160Section() {
       <section className="pms-inner-panel" aria-label="ENS160 live i historia">
         <header className="panel-head">
           <div>
-            <p className="eyebrow">WYKRES ENS160</p>
-            <h2>ENS160: historia i live</h2>
-            <p>Wykres pokazuje wyłącznie TVOC i eCO2. Dla dnia dzisiejszego obejmuje także dane bieżące.</p>
+            <p className="eyebrow">WYKRES 4</p>
+            <h2>Jakość powietrza (TVOC i eCO₂)</h2>
+            <p>Wykres pokazuje zmiany TVOC i eCO₂ w ciągu dnia.</p>
           </div>
           <div className="panel-actions">
             <button className="primary-btn" type="button" onClick={() => calendar.selectDate(calendar.state.today)}>Dziś</button>

@@ -50,7 +50,7 @@ export default function PmsHistorySection() {
           <div>
             <p className="eyebrow">WYKRES 2</p>
             <h3>Zanieczyszczenie pyłowe</h3>
-            <p>Wybierz dzień, aby zobaczyć historyczne pomiary PM; dla dnia dzisiejszego wykres obejmuje także dane bieżące.</p>
+            <p>Wybierz dzień, aby zobaczyć historyczne pomiary PM.</p>
           </div>
           <div className="panel-actions">
             <button className="primary-btn" id="pmsBtnToday" type="button" onClick={() => calendar.selectDate(calendar.state.today)}>Dziś</button>
@@ -111,12 +111,6 @@ export default function PmsHistorySection() {
           />
         </div>
       </section>
-
-      <div className="pms-separator" aria-hidden="true">
-        <span className="pms-separator-line"></span>
-        <span className="chip pms-separator-chip">WYKRES 3</span>
-        <span className="pms-separator-line"></span>
-      </div>
 
       <div className="pms-particles-stage">
         <PmsParticlesChart

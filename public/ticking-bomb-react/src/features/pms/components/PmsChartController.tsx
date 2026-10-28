@@ -20,10 +20,7 @@ interface PmsChartControllerProps {
 
 const MIN_WINDOW_MS = 60_000;
 const REALTIME_WINDOW_MS = 10 * 60_000;
-const RIGHT_PADDING_RATIO = 0.08;
-const RIGHT_PADDING_MAX_MS = 60_000;
-const INITIAL_ZOOM_MS = REALTIME_WINDOW_MS;
-const INITIAL_PAN_STEPS = 4;
+const INITIAL_ZOOM_MS = 2 * 60 * 60 * 1000;
 
 function toPlotPoints(points: PmsChartPoint[]): PmsPlotPoint[] {
   return points.map((point) => ({ x: point.x, y: point.y }));
@@ -36,21 +33,16 @@ function getBoundsFromPoints(points: PmsChartPoint[]): WindowRange | null {
 
   const firstPoint = points[0];
   const startDate = new Date(firstPoint.x);
-  const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime();
+  const dayStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime();
 
   return {
-    start,
-    end: start + 24 * 60 * 60 * 1000,
+    start: firstPoint.x,
+    end: dayStart + 24 * 60 * 60 * 1000,
   };
 }
 
 function getLatestPoint(points: PmsChartPoint[]): number {
   return points.reduce((latest, point) => Math.max(latest, point.x), 0);
-}
-
-function computeRightPadding(windowMs: number): number {
-  const padding = Math.round(windowMs * RIGHT_PADDING_RATIO);
-  return Math.min(padding, RIGHT_PADDING_MAX_MS);
 }
 
 function getSeriesData(points: PmsChartPoint[]): PmsSeriesData {
@@ -130,14 +122,13 @@ export default function PmsChartController({ points, loadState, selectedDate }: 
     }
 
     const latest = getLatestPoint(sortedPoints);
-    const pad = computeRightPadding(REALTIME_WINDOW_MS);
-    const end = Math.max(bounds.start + MIN_WINDOW_MS, latest - pad);
-    const start = Math.max(bounds.start, end - INITIAL_ZOOM_MS);
+    const headroom = REALTIME_WINDOW_MS;
+    const dataStart = sortedPoints[0]?.x ?? bounds.start;
+    const dataSpan = latest - dataStart;
+    const desiredWidth = dataSpan < INITIAL_ZOOM_MS ? dataSpan + headroom : INITIAL_ZOOM_MS;
+    const end = Math.min(bounds.end, latest + headroom);
+    const start = Math.max(bounds.start, end - desiredWidth);
     setWindow(start, end);
-
-    for (let index = 0; index < INITIAL_PAN_STEPS; index += 1) {
-      pan(1);
-    }
 
     initializedDateRef.current = selectedDate;
   }, [bounds, loadState, pan, reset, selectedDate, setWindow, sortedPoints]);
@@ -152,7 +143,7 @@ export default function PmsChartController({ points, loadState, selectedDate }: 
     }
 
     const latest = getLatestPoint(sortedPoints);
-    const padding = computeRightPadding(REALTIME_WINDOW_MS);
+    const padding = REALTIME_WINDOW_MS;
 
     if (!shouldAutoFollowLatest(windowRange, latest, padding)) {
       return;
