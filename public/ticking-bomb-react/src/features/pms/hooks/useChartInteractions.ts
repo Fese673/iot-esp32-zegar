@@ -185,7 +185,7 @@ export function useChartInteractions({
       zoom(1.25);
     }
 
-    activeCanvas.style.touchAction = 'none';
+    activeCanvas.style.touchAction = 'pan-y';
     activeFrame.addEventListener('wheel', handleWheel, { passive: false });
     activeCanvas.addEventListener('pointerdown', handlePointerDown);
     activeCanvas.addEventListener('pointermove', handlePointerMove);

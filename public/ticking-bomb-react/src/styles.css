@@ -511,13 +511,9 @@ body.analysis-page-active {
 }
 
 .aqi-scale-labels {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -26px;
+  position: static;
   margin: 0;
   padding: 0;
-  height: 20px;
   pointer-events: none;
   font-size: 0.7rem;
   color: var(--muted);
@@ -525,23 +521,13 @@ body.analysis-page-active {
 
 .aqi-scale-labels span {
   padding-top: 2px;
-}
-
-.aqi-scale-labels span {
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
+  position: static;
+  transform: none;
   line-height: 1;
   width: auto;
   min-width: 1rem;
   text-align: center;
 }
-
-.aqi-scale-labels span:nth-child(1) { left: 10%; }
-.aqi-scale-labels span:nth-child(2) { left: 30%; }
-.aqi-scale-labels span:nth-child(3) { left: 50%; }
-.aqi-scale-labels span:nth-child(4) { left: 70%; }
-.aqi-scale-labels span:nth-child(5) { left: 90%; }
 
 .aqi-step {
   flex: 1;
@@ -690,6 +676,13 @@ body.analysis-page-active {
   pointer-events: auto;
 }
 
+@media (hover: none), (pointer: coarse) {
+  .chart-frame .chart-controls {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 .chart-controls {
   position: absolute;
   top: 50%;
@@ -735,13 +728,19 @@ body.analysis-page-active {
 .chart-overlay {
   position: absolute;
   inset: 0;
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  padding: 16px;
   background: linear-gradient(180deg, rgba(12,18,29,0.92), rgba(12,18,29,0.92));
   color: var(--muted);
   font-weight: 600;
   letter-spacing: 0.2px;
+}
+
+.chart-overlay[hidden] {
+  display: none;
 }
 
 .chart-overlay.error { color: var(--error); }
@@ -927,6 +926,7 @@ body.analysis-page-active {
 
 @media (max-width: 640px) {
   .value { font-size: 2.2rem; }
+  #uptimeValue { font-size: 1.65rem; }
   .panel-body.split { gap: 14px; }
   .topbar { padding: 16px; }
   .topbar-left,
@@ -963,6 +963,18 @@ body.analysis-page-active {
   }
   .pms-separator {
     gap: 10px;
+  }
+  .chart-frame {
+    min-height: 0;
+    height: clamp(240px, 46vh, 320px);
+  }
+  .chart-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .chart-head .chart-hint {
+    max-width: 100%;
   }
 }
 

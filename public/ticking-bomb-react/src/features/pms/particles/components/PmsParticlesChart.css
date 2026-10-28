@@ -175,7 +175,9 @@
 
 .particles3-main-col {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
+  min-width: 0;
 }
 
 .particles3-y-axis {
@@ -749,6 +751,17 @@
 
   .particles3-x-frac {
     font-size: 0.82rem;
+  }
+
+  .particles3-x-max,
+  .particles3-x-frac {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .particles3-topline {
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
   }
 
   .particles3-footer {

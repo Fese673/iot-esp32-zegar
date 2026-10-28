@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Chart, registerables, type ChartDataset, type TooltipItem } from 'chart.js';
+import { toDateKey } from '../../../shared/lib/dateHelpers';
 import { clampWindow, groupChartPointsBySeries, sortChartPoints } from '../../../shared/lib/chartHelpers';
 import type { ChartPoint, LoadState } from '../../../shared/types';
 
@@ -298,7 +299,7 @@ export default function HistoryChart({ points, loadState, selectedDate, seriesCo
 
     chartRef.current = chart;
     chartCanvas.__historyChart = chart;
-    chartCanvas.style.touchAction = 'none';
+    chartCanvas.style.touchAction = 'pan-y';
 
     function getScaleX() {
       return chartRef.current?.scales.x ?? null;
@@ -514,8 +515,48 @@ export default function HistoryChart({ points, loadState, selectedDate, seriesCo
       }
     });
 
+    const pressureConfigs = (seriesConfig ?? []).filter((config) =>
+      /hpa|ciśn|press/i.test(`${config.unit ?? ''} ${config.label ?? ''}`),
+    );
+    if (pressureConfigs.length > 0) {
+      const pressureSeriesKeys = new Set(pressureConfigs.map((config) => config.key));
+      const pressureValues = sortedPoints
+        .filter((point) => pressureSeriesKeys.has(point.series))
+        .map((point) => point.y)
+        .filter((value) => Number.isFinite(value));
+      const y1Scale = chart.options.scales?.y1 as
+        | { min?: number; max?: number; ticks?: { stepSize?: number; maxTicksLimit?: number } }
+        | undefined;
+      if (pressureValues.length > 0 && y1Scale) {
+        const minValue = Math.min(...pressureValues);
+        const maxValue = Math.max(...pressureValues);
+        const padding = Math.max(2, (maxValue - minValue) * 0.25);
+        const range = maxValue - minValue + padding * 2;
+        const stepSize = range <= 6 ? 1 : range <= 12 ? 2 : 5;
+        y1Scale.min = Math.floor((minValue - padding) * 10) / 10;
+        y1Scale.max = Math.ceil((maxValue + padding) * 10) / 10;
+        if (y1Scale.ticks) {
+          y1Scale.ticks.stepSize = stepSize;
+          y1Scale.ticks.maxTicksLimit = 8;
+        }
+      }
+    }
+
     if (initializedDateRef.current === selectedDate && chartWindowRef.current.end > chartWindowRef.current.start) {
-      setChartWindowRef.current(chartWindowRef.current.start, chartWindowRef.current.end);
+      const isSelectedToday = selectedDate === toDateKey(new Date());
+      const latest = getLatestPoint(sortedPoints);
+      const padding = computeRightPadding(REALTIME_WINDOW_MS);
+      const windowRange = chartWindowRef.current;
+
+      if (isSelectedToday && Number.isFinite(latest) && latest >= windowRange.end - padding && bounds) {
+        const width = windowRange.end - windowRange.start;
+        const targetEnd = latest + padding;
+        const nextStart = Math.max(bounds.start, targetEnd - width);
+        const nextEnd = Math.min(bounds.end, targetEnd);
+        setChartWindowRef.current(nextStart, nextEnd);
+      } else {
+        setChartWindowRef.current(windowRange.start, windowRange.end);
+      }
       return;
     }
 

@@ -7,6 +7,8 @@ yarn-error.log*
 firebase-debug.log*
 firebase-debug.*.log*
 oczekujące 
+test
+.kilo
 
 # Firebase cache
 .firebase/
